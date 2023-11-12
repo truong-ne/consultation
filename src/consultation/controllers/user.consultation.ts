@@ -17,21 +17,6 @@ export class UserConsultation {
         private readonly amqpConnection: AmqpConnection,
     ) { }
 
-    @Post('testto')
-    async sendTest() {
-        const data = await this.amqpConnection.request({
-            exchange: 'healthline.consultation.schedule',
-            routingKey: 'schedule',
-            payload: {
-                doctor_id: 'CfKTOx1XRF0Nph60kfJsm',
-                date: '22/10/2023'
-            },
-            timeout: 10000
-        })
-        console.log(data)
-        return data
-    }
-
     @UseGuards(UserGuard)
     @ApiOperation({ summary: 'Khách hàng đặt 1 cuộc hẹn với bác sĩ' })
     @ApiBearerAuth()
