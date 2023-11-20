@@ -15,7 +15,7 @@ export class Feedback {
     @Column()
     user_id: string
 
-    @Column()
+    @Column({ nullable: true })
     @Min(0)
     @Max(5)
     rated: number
@@ -23,7 +23,7 @@ export class Feedback {
     @OneToOne(() => Consultation, consultation => consultation.feedback)
     consultation: Consultation
 
-    @Column()
+    @Column({ nullable: true })
     feedback: string
 
     @Column({ type: 'timestamp', name: 'created_at', default: () => 'CURRENT_TIMESTAMP' })

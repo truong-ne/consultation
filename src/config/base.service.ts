@@ -38,7 +38,7 @@ export abstract class BaseService<T> {
         return finalString;
     }
 
-    async fixedStringToArray(str: string) {
+    async fixedStringToArray(str: string): Promise<number[]> {
         const segments = str.split('/'); // Cắt chuỗi theo dấu '/'
         const result = [];
 

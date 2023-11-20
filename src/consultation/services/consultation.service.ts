@@ -28,10 +28,15 @@ export class ConsultationService extends BaseService<Consultation> {
         const bookingDate = await this.bDate(dto.date, dto.expected_time, doctor, working_time)
 
         const expected_time = await this.fixedStringToArray(dto.expected_time)
+
+        let booked = false
         expected_time.forEach(e => {
             if (!bookingDate.includes(e))
-                return { message: 'doctor_booked' }
+                booked = true
         })
+
+        if (booked)
+            return { message: 'working_times_booked_or_not_found' }
 
         const user = await this.userRepository.findOne({
             where: { id: user_id }

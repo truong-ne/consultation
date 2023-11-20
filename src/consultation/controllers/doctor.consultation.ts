@@ -43,4 +43,19 @@ export class DoctorConsultation {
             message: 'consultation_denied'
         }
     }
+
+    @UseGuards(DoctorGuard)
+    @ApiOperation({ summary: 'Bác sĩ từ chối cuộc hẹn của khách hàng' })
+    @ApiBearerAuth()
+    @Delete(':consultation_id')
+    async finishedConsultation(
+        @Param('consultation_id') consultation_id: string,
+        @Req() req
+    ) {
+        const data = await this.consultationService.doctorConsultation(req.user.id, consultation_id, Status.finished)
+        return {
+            data: data,
+            message: 'consultation_finished'
+        }
+    }
 }

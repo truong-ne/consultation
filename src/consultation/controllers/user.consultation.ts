@@ -25,7 +25,6 @@ export class UserConsultation {
         @Body() dto: BookConsultation,
         @Req() req
     ) {
-        // const amqp = fetch()
         const working_time = await this.amqpConnection.request<string>({
             exchange: 'healthline.consultation.schedule',
             routingKey: 'schedule',
