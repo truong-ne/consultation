@@ -16,6 +16,9 @@ import { FeedbackController } from './controllers/feedback.controller';
     ],
     providers: [
         FeedbackService
+    ],
+    exports: [
+        FeedbackService
     ]
 })
 export class FeedbackModule { }

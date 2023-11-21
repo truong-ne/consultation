@@ -16,7 +16,6 @@ export class UserConsultation {
         @Inject(CACHE_MANAGER) private cacheManager: Cache,
         private readonly amqpConnection: AmqpConnection,
     ) { }
-
     @UseGuards(UserGuard)
     @ApiOperation({ summary: 'Khách hàng đặt 1 cuộc hẹn với bác sĩ' })
     @ApiBearerAuth()

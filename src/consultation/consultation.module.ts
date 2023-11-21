@@ -8,6 +8,7 @@ import { DoctorConsultation } from './controllers/doctor.consultation';
 import { ConsultationService } from './services/consultation.service';
 import { RabbitMQModule } from '@golevelup/nestjs-rabbitmq';
 import * as dotenv from 'dotenv'
+import { ConsultationConsumer } from './consumers/consultation.consumer';
 
 dotenv.config()
 
@@ -19,6 +20,10 @@ dotenv.config()
                 {
                     name: 'healthline.consultation.schedule',
                     type: 'direct',
+                },
+                {
+                    name: 'healthline.doctor.information',
+                    type: 'direct'
                 }
             ],
             uri: process.env.RABBITMQ_URL,
@@ -31,6 +36,7 @@ dotenv.config()
     ],
     providers: [
         ConsultationService,
+        ConsultationConsumer
     ]
 })
 export class ConsultationModule { }

@@ -143,4 +143,45 @@ export class ConsultationService extends BaseService<Consultation> {
 
         return result
     }
+
+    async calculateAverageRatingPerDoctor() {
+        const consultations = await this.consultationRepository.find({
+            relations: ['doctor', 'feedback']
+        });
+
+        const doctorRatingsMap = new Map<string, { totalRatings: number, numberOfRatings: number, quantity: number }>();
+
+        consultations.forEach((consultation) => {
+            if (consultation.feedback) {
+                const doctorId = consultation.doctor.id;
+
+                if (!doctorRatingsMap.has(doctorId)) {
+                    doctorRatingsMap.set(doctorId, { totalRatings: 0, numberOfRatings: 0, quantity: 0 });
+                }
+
+                const doctorRatings = doctorRatingsMap.get(doctorId);
+
+                doctorRatings.quantity++
+                if (consultation.feedback && consultation.feedback.rated !== null) {
+                    doctorRatings.totalRatings += consultation.feedback.rated;
+                    doctorRatings.numberOfRatings++;
+                }
+            }
+        });
+
+        const averageRatingsPerDoctor = [];
+
+        doctorRatingsMap.forEach((ratings, doctorId) => {
+            const averageRating =
+                ratings.numberOfRatings > 0 ? ratings.totalRatings / ratings.numberOfRatings : 0;
+
+            averageRatingsPerDoctor.push({
+                doctor_id: doctorId,
+                averageRating: averageRating,
+                quantity: ratings.quantity
+            });
+        });
+
+        return averageRatingsPerDoctor;
+    }
 }

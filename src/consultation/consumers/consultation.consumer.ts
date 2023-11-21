@@ -3,18 +3,17 @@ import { Injectable } from '@nestjs/common';
 import { ConsultationService } from '../services/consultation.service';
 
 @Injectable()
-export class ScheduleConsumer {
+export class ConsultationConsumer {
     constructor(
-        private readonly consultationService: ConsultationService
+        private readonly consultationService: ConsultationService,
     ) { }
 
     @RabbitRPC({
-        exchange: 'healthline.doctor.schedule',
-        routingKey: 'schedule',
-        queue: 'working_times',
+        exchange: 'healthline.doctor.information',
+        routingKey: 'information',
+        queue: 'doctor information',
     })
-    async() {
-        console.log(this.consultationService.VNTime())
-        return this.consultationService.VNTime()
+    async listDoctor(data: any) {
+        return await this.consultationService.calculateAverageRatingPerDoctor()
     }
 }
