@@ -35,3 +35,8 @@ export enum Status {
     canceled = "canceled",
     denied = "denied"
 }
+
+export enum DiscountType {
+    percent = '%',
+    vnd = 'vnd'
+}

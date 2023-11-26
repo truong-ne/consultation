@@ -1,6 +1,7 @@
 import { Column, Entity, JoinColumn, ManyToMany, OneToMany, PrimaryColumn } from "typeorm";
 import { nanoid } from "nanoid";
 import { Consultation } from "../../consultation/entities/consultation.entity";
+import { DiscountType } from "../../config/enum.constants";
 
 @Entity({ name: 'Discounts' })
 export class Discount {
@@ -11,14 +12,17 @@ export class Discount {
     @PrimaryColumn()
     id: string
 
-    @OneToMany(() => Consultation, consultation => consultation.discount_code)
+    @Column()
     code: string
+
+    @OneToMany(() => Consultation, consultation => consultation.discount_code)
+    consultations: Consultation[]
 
     @Column()
     value: number
 
-    @Column()
-    type: string
+    @Column({ type: 'enum', enum: DiscountType, default: DiscountType.vnd })
+    type: DiscountType
 
     @Column()
     expiration_time: Date
