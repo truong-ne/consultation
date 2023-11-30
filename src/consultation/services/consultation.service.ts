@@ -26,7 +26,7 @@ export class ConsultationService extends BaseService<Consultation> {
         if (!doctor) throw new NotFoundException('doctor_not_found')
 
         const bookingDate = await this.bDate(dto.date, dto.expected_time, doctor, working_time)
-
+        console.log(bookingDate)
         const expected_time = await this.fixedStringToArray(dto.expected_time)
 
         let booked = false
