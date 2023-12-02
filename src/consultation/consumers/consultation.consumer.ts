@@ -17,12 +17,12 @@ export class ConsultationConsumer {
         return await this.consultationService.calculateAverageRatingPerDoctor()
     }
 
-    @RabbitRPC({
-        exchange: 'healthline.doctor.information',
-        routingKey: 'information',
-        queue: 'doctor information'
-    })
-    async doctorSchedule() {
-        return
-    }
+    // @RabbitRPC({
+    //     exchange: 'healthline.doctor.information',
+    //     routingKey: 'information',
+    //     queue: 'doctor information'
+    // })
+    // async doctorSchedule() {
+    //     return this.consultationService
+    // }
 }

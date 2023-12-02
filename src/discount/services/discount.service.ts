@@ -44,9 +44,9 @@ export class DiscountService extends BaseService<Discount> {
         }
     }
 
-    async updateDiscount(dto: DiscountDto): Promise<any> {
+    async updateDiscount(id: string, dto: DiscountDto): Promise<any> {
         const discount = await this.discountRepository.findOne({
-            where: { code: dto.code }
+            where: { id: id }
         })
 
         if (!discount)
@@ -64,8 +64,6 @@ export class DiscountService extends BaseService<Discount> {
         const data = await this.discountRepository.save(discount)
 
         return {
-            code: "200",
-            message: "success",
             data: data
         }
     }
@@ -81,8 +79,7 @@ export class DiscountService extends BaseService<Discount> {
         const data = await this.discountRepository.delete(discount)
 
         return {
-            code: "200",
-            message: "success"
+            message: "successfully"
         }
     }
 }

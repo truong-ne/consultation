@@ -22,5 +22,4 @@ export class DiscountDto {
     @IsString()
     @ApiProperty({ example: '12/12/2023' })
     expiration_time: string
-
 }

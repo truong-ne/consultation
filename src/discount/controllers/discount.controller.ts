@@ -29,11 +29,12 @@ export class DiscountController {
     @UseGuards(AdminGuard)
     @ApiOperation({ summary: 'Admin thông tin discount' })
     @ApiBearerAuth()
-    @Patch()
+    @Patch('/:id')
     async updateDiscount(
+        @Param('id') id: string,
         @Body() dto: DiscountDto,
     ) {
-        return await this.discountService.updateDiscount(dto)
+        return await this.discountService.updateDiscount(id, dto)
     }
 
     @UseGuards(AdminGuard)

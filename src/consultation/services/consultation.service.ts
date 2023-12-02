@@ -18,6 +18,13 @@ export class ConsultationService extends BaseService<Consultation> {
         super(consultationRepository)
     }
 
+    // async doctorSchedule(doctor_id: string) {
+    //     const doctor = await this.doctorRepository.findOne({
+    //         where: {id: doctor_id}
+    //     })
+
+    // }
+
     async bookConsultation(user_id: string, dto: BookConsultation, working_time: string) {
         const doctor = await this.doctorRepository.findOne({
             where: { id: dto.doctor_id }
