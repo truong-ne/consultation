@@ -17,6 +17,14 @@ export class DiscountController {
     ) { }
 
     @UseGuards(AdminGuard)
+    @ApiOperation({ summary: 'Admin xóa discount' })
+    @ApiBearerAuth()
+    @Get()
+    async getDiscount() {
+        return await this.discountService.getDiscount()
+    }
+
+    @UseGuards(AdminGuard)
     @ApiOperation({ summary: 'Admin tạo discount' })
     @ApiBearerAuth()
     @Post()
