@@ -2,7 +2,7 @@ import { Injectable, NotFoundException, ConflictException, UnauthorizedException
 import { InjectRepository } from "@nestjs/typeorm";
 import { BaseService } from "../../config/base.service";
 import { Code, IsNull, Not, Repository } from "typeorm";
-import { Status } from "../../config/enum.constants";
+import { DiscountType, Status } from "../../config/enum.constants";
 import { Consultation } from "../../consultation/entities/consultation.entity";
 import { Cron, CronExpression } from "@nestjs/schedule";
 import { Discount } from "../entities/discount.entity";
@@ -15,6 +15,12 @@ export class DiscountService extends BaseService<Discount> {
         @InjectRepository(Discount) private readonly discountRepository: Repository<Discount>,
     ) {
         super(discountRepository)
+        this.createDiscount({
+            code: "test" + Date.now(),
+            value: 200,
+            type: DiscountType.vnd,
+            expiration_time: "12/12/2023"
+        })
     }
 
     async createDiscount(dto: DiscountDto): Promise<any> {
@@ -37,9 +43,21 @@ export class DiscountService extends BaseService<Discount> {
 
         const data = await this.discountRepository.save(discount)
 
+        await fetch('https://meilisearch-truongne.koyeb.app/indexes/discount/documents', {
+            method: 'POST',
+            headers: {
+                'Authorization': 'Bearer CHOPPER_LOVE_MEILISEARCH',
+                'Content-type': 'application/json'
+            },
+            body: JSON.stringify({
+                id: data.id,
+                code: data.code,
+                value: data.value,
+                expiration_time: data.expiration_time
+            })
+        })
+
         return {
-            code: "200",
-            message: "success",
             data: data
         }
     }
