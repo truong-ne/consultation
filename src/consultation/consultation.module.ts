@@ -24,7 +24,11 @@ dotenv.config()
                 {
                     name: 'healthline.doctor.information',
                     type: 'direct'
-                }
+                },
+                {
+                    name: 'doctor.schedule',
+                    type: 'direct'
+                },
             ],
             uri: process.env.RABBITMQ_URL,
             connectionInitOptions: { wait: true, reject: true, timeout: 10000 },

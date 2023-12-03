@@ -18,12 +18,16 @@ export class ConsultationService extends BaseService<Consultation> {
         super(consultationRepository)
     }
 
-    // async doctorSchedule(doctor_id: string) {
-    //     const doctor = await this.doctorRepository.findOne({
-    //         where: {id: doctor_id}
-    //     })
+    async doctorSchedule(doctor_id: string, date: string, working_time: string) {
+        const doctor = await this.doctorRepository.findOne({
+            where: { id: doctor_id }
+        })
 
-    // }
+        if (!doctor) throw new NotFoundException('doctor_not_found')
+
+        const bookingDate = await this.bDate(date, '', doctor, working_time)
+        return bookingDate
+    }
 
     async bookConsultation(user_id: string, dto: BookConsultation, working_time: string) {
         const doctor = await this.doctorRepository.findOne({
