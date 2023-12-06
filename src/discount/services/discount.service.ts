@@ -17,6 +17,20 @@ export class DiscountService extends BaseService<Discount> {
         super(discountRepository)
     }
 
+    @Cron(CronExpression.EVERY_10_MINUTES)
+    async cronDiscount() {
+        const discount = await this.getDiscount()
+        console.log(discount['data'])
+        await fetch('https://meilisearch-truongne.koyeb.app/indexes/discount/documents', {
+            method: 'POST',
+            headers: {
+                'Authorization': 'Bearer CHOPPER_LOVE_MEILISEARCH',
+                'Content-type': 'application/json'
+            },
+            body: JSON.stringify(discount['data'])
+        })
+    }
+
     async createDiscount(dto: DiscountDto): Promise<any> {
         const cDiscount = await this.discountRepository.findOne({
             where: { code: dto.code }
