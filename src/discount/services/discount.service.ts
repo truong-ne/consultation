@@ -15,12 +15,6 @@ export class DiscountService extends BaseService<Discount> {
         @InjectRepository(Discount) private readonly discountRepository: Repository<Discount>,
     ) {
         super(discountRepository)
-        this.createDiscount({
-            code: "test" + Date.now(),
-            value: 200,
-            type: DiscountType.vnd,
-            expiration_time: "12/12/2023"
-        })
     }
 
     async createDiscount(dto: DiscountDto): Promise<any> {
@@ -32,7 +26,7 @@ export class DiscountService extends BaseService<Discount> {
             throw new ConflictException('discount_exist')
 
         const discount = new Discount()
-        var date = new Date(dto.expiration_time.replace(/(\d+[/])(\d+[/])/, '$2$1'))
+        var date = new Date(dto.expiration_time.replace(/(\d+[/])(\d+[/])/, '$2$    1'))
         if (isNaN(date.valueOf()))
             throw new BadRequestException('wrong_syntax')
         else
