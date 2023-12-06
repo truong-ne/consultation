@@ -28,11 +28,17 @@ export class UserConsultation {
             exchange: 'healthline.consultation.schedule',
             routingKey: 'schedule',
             payload: {
-                doctor: dto.doctor_id,
+                doctor_id: dto.doctor_id,
                 date: dto.date,
             },
             timeout: 10000
         })
+
+        if (!!working_time['message']) {
+            return { message: 'bug_message' }
+        }
+
+
         return await this.consultationService.bookConsultation(req.user.id, dto, working_time)
     }
 

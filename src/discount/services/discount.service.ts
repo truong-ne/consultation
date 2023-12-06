@@ -53,6 +53,7 @@ export class DiscountService extends BaseService<Discount> {
                 id: data.id,
                 code: data.code,
                 value: data.value,
+                type: discount.type,
                 expiration_time: data.expiration_time
             })
         })

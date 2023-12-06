@@ -16,14 +16,14 @@ export class ConsultationConsumer {
     @RabbitRPC({
         exchange: 'healthline.doctor.information',
         routingKey: 'information',
-        queue: 'doctor information',
+        queue: 'carp',
     })
     async listDoctor(data: any) {
         return await this.consultationService.calculateAverageRatingPerDoctor()
     }
 
     @RabbitRPC({
-        exchange: 'doctor.schedule',
+        exchange: 'healthline.doctor.information',
         routingKey: 'schedule',
         queue: 'doctor information'
     })
@@ -33,11 +33,16 @@ export class ConsultationConsumer {
             exchange: 'healthline.consultation.schedule',
             routingKey: 'schedule',
             payload: {
-                doctor: data.doctor_id,
+                doctor_id: data.doctor_id,
                 date: data.date,
             },
             timeout: 10000
         })
+
+        if (!!working_time['message']) {
+            return 1
+        }
+
         return await this.consultationService.doctorSchedule(data.doctor_id, data.date, working_time)
     }
 }
