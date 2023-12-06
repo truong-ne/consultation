@@ -20,7 +20,7 @@ export class DiscountService extends BaseService<Discount> {
     @Cron(CronExpression.EVERY_10_MINUTES)
     async cronDiscount() {
         const discount = await this.getDiscount()
-        console.log(discount['data'])
+        console.log('Meilisync Discount')
         await fetch('https://meilisearch-truongne.koyeb.app/indexes/discount/documents', {
             method: 'POST',
             headers: {
