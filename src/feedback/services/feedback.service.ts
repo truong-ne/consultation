@@ -46,14 +46,14 @@ export class FeedbackService extends BaseService<Feedback> {
             where: { id: dto.feedback_id }
         })
 
+        if (!feedback)
+            throw new NotFoundException('feedback_not_found')
+
         if (feedback.rated)
             return { message: 'you_have_a_feedback_for_this_consultation' }
 
         if (user_id != feedback.user_id)
             throw new UnauthorizedException('unauthorized')
-
-        if (!feedback)
-            throw new NotFoundException('feedback_not_found')
 
         feedback.rated = dto.rated
         feedback.feedback = dto.feedback
