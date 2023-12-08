@@ -19,3 +19,9 @@ export class UserFeedbackDto {
     @IsString()
     feedback: string
 }
+
+export class DoctorId {
+    @IsNotEmpty()
+    @IsString()
+    doctor_id: string
+}

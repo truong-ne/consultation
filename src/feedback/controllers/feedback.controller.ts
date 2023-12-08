@@ -4,6 +4,7 @@ import { UserGuard } from "../../auth/guards/user.guard";
 import { AmqpConnection } from "@golevelup/nestjs-rabbitmq";
 import { FeedbackService } from "../services/feedback.service";
 import { UserFeedbackDto } from "../dto/feedback.dto";
+import { DoctorGuard } from "../../auth/guards/doctor.guard";
 
 @ApiTags('FEEDBACK')
 @Controller('feedback')
@@ -22,5 +23,14 @@ export class FeedbackController {
         @Req() req
     ) {
         return await this.feedbackService.userFeedback(req.user.id, dto)
+    }
+
+    @UseGuards(DoctorGuard)
+    @ApiBearerAuth()
+    @Get(':doctor_id')
+    async rated(
+        @Param('doctor_id') doctor_id: string
+    ) {
+        return await this.feedbackService.ratedDoctor(doctor_id)
     }
 }

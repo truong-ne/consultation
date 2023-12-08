@@ -62,4 +62,50 @@ export class FeedbackService extends BaseService<Feedback> {
 
         return { message: 'feedback_successfully' }
     }
+
+    async ratedDoctor(doctor_id: string) {
+        const data = []
+
+        const rated_one = await this.feedbackRepository.count({
+            where: {
+                rated: 1
+            }
+        })
+
+        data.push(rated_one)
+
+        const rated_two = await this.feedbackRepository.count({
+            where: {
+                rated: 2
+            }
+        })
+
+        data.push(rated_two)
+
+        const rated_three = await this.feedbackRepository.count({
+            where: {
+                rated: 3
+            }
+        })
+
+        data.push(rated_three)
+
+        const rated_four = await this.feedbackRepository.count({
+            where: {
+                rated: 4
+            }
+        })
+
+        data.push(rated_four)
+
+        const rated_five = await this.feedbackRepository.count({
+            where: {
+                rated: 5
+            }
+        })
+
+        data.push(rated_five)
+
+        return { data: data }
+    }
 }
