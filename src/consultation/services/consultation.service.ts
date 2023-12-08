@@ -58,6 +58,7 @@ export class ConsultationService extends BaseService<Consultation> {
         const consultation = new Consultation()
         consultation.user = user
         consultation.doctor = doctor
+        consultation.medical_record = dto.medical_record
         consultation.date = dto.date
         consultation.expected_time = dto.expected_time
         consultation.price = dto.price
@@ -199,5 +200,38 @@ export class ConsultationService extends BaseService<Consultation> {
         });
 
         return averageRatingsPerDoctor;
+    }
+
+    async countUserByDoctorConsultation(doctor_id: string): Promise<any> {
+        const doctor = await this.doctorRepository.findOne({
+            where: { id: doctor_id }
+        })
+
+        if (!doctor)
+            throw new NotFoundException('doctor_not_found')
+
+        const consultations = await this.consultationRepository.find({
+            where: { doctor: doctor, status: Status.finished },
+            relations: ['user']
+        })
+
+        const data = []
+        let quantity = 0
+        for (const consultation of consultations) {
+            quantity++;
+            const info = {
+                medical_id: consultation.medical_record,
+                phone: consultation.user.phone,
+                email: consultation.user.email,
+            }
+            data.push(info)
+        }
+
+        return {
+            data: {
+                consultation: data,
+                quantity: quantity
+            },
+        }
     }
 }

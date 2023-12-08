@@ -5,6 +5,8 @@ import { Cache } from "cache-manager";
 import { ConsultationService } from "../services/consultation.service";
 import { DoctorGuard } from "../../auth/guards/doctor.guard";
 import { Status } from "../../config/enum.constants";
+import { Admin } from "typeorm";
+import { AdminGuard } from "src/auth/guards/admin.guard";
 
 @ApiTags('DOCTOR CONSULTATION')
 @Controller('doctor')
@@ -57,5 +59,13 @@ export class DoctorConsultation {
             data: data,
             message: 'consultation_finished'
         }
+    }
+
+    @UseGuards(DoctorGuard)
+    @Post('information/:doctor_id')
+    async constUserByDoctorConsultation(
+        @Param('doctor_id') doctor_id: string,
+    ) {
+        return await this.consultationService.countUserByDoctorConsultation(doctor_id)
     }
 }

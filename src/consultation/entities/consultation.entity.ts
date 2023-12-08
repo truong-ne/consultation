@@ -25,6 +25,9 @@ export class Consultation {
     @Column()
     price: number
 
+    @Column({ name: 'medical_record', nullable: true })
+    medical_record: string
+
     @Column({ type: 'enum', enum: Status, default: Status.pending })
     status: Status
 

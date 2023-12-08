@@ -8,6 +8,11 @@ export class BookConsultation {
     doctor_id: string
 
     @IsNotEmpty()
+    @ApiProperty({ example: 'medical_id' })
+    @IsString()
+    medical_record: string
+
+    @IsNotEmpty()
     @ApiProperty({ example: '20/10/2023' })
     @IsString()
     date: string
