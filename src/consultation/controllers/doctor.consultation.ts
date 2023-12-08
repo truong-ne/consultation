@@ -62,6 +62,7 @@ export class DoctorConsultation {
     }
 
     @UseGuards(DoctorGuard)
+    @ApiBearerAuth()
     @Post('information/:doctor_id')
     async constUserByDoctorConsultation(
         @Param('doctor_id') doctor_id: string,
