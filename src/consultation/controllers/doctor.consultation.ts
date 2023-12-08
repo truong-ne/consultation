@@ -76,4 +76,11 @@ export class DoctorConsultation {
     async consultationDashboard() {
         return await this.consultationService.consultationDashboard()
     }
+
+    @UseGuards(AdminGuard)
+    @ApiBearerAuth()
+    @Get('consultation/chart')
+    async consultationChart() {
+        return await this.consultationService.consultationChart()
+    }
 }

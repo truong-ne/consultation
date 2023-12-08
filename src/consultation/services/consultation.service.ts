@@ -222,6 +222,32 @@ export class ConsultationService extends BaseService<Consultation> {
         }
     }
 
+    async consultationChart() {
+        const finish = await this.consultationRepository.count({
+            where: { status: Status.finished }
+        })
+
+        const confirm = await this.consultationRepository.count({
+            where: { status: Status.confirmed }
+        })
+
+        const cancel = await this.consultationRepository.count({
+            where: { status: Status.canceled }
+        })
+
+        const denied = await this.consultationRepository.count({
+            where: { status: Status.denied }
+        })
+
+        return {
+            data: {
+                finish: finish,
+                confirm: confirm,
+                cancel: cancel + denied
+            }
+        }
+    }
+
     async countUserByDoctorConsultation(doctor_id: string): Promise<any> {
         const doctor = await this.doctorRepository.findOne({
             where: { id: doctor_id }
