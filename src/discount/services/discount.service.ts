@@ -40,7 +40,7 @@ export class DiscountService extends BaseService<Discount> {
             throw new ConflictException('discount_exist')
 
         const discount = new Discount()
-        var date = new Date(dto.expiration_time.replace(/(\d+[/])(\d+[/])/, '$2$    1'))
+        var date = new Date(dto.expiration_time.replace(/(\d+[/])(\d+[/])/, '$2$1'))
         if (isNaN(date.valueOf()))
             throw new BadRequestException('wrong_syntax')
         else
