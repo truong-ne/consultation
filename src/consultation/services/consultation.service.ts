@@ -299,6 +299,10 @@ export class ConsultationService extends BaseService<Consultation> {
             where: { status: Status.confirmed }
         })
 
+        const pending = await this.consultationRepository.count({
+            where: { status: Status.pending }
+        })
+
         const cancel = await this.consultationRepository.count({
             where: { status: Status.canceled }
         })
@@ -311,6 +315,7 @@ export class ConsultationService extends BaseService<Consultation> {
             data: {
                 finish: finish,
                 confirm: confirm,
+                pending: pending,
                 cancel: cancel + denied
             }
         }
