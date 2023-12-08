@@ -7,6 +7,7 @@ import { Feedback } from "../entities/feedback.entity";
 import { Consultation } from "../../consultation/entities/consultation.entity";
 import { Cron, CronExpression } from "@nestjs/schedule";
 import { UserFeedbackDto } from "../dto/feedback.dto";
+import { Doctor } from "../../consultation/entities/doctor.entity";
 
 
 @Injectable()
@@ -14,6 +15,7 @@ export class FeedbackService extends BaseService<Feedback> {
     constructor(
         @InjectRepository(Consultation) private readonly consultationRepository: Repository<Consultation>,
         @InjectRepository(Feedback) private readonly feedbackRepository: Repository<Feedback>,
+        @InjectRepository(Doctor) private readonly doctorRepository: Repository<Doctor>
     ) {
         super(feedbackRepository)
     }
@@ -64,52 +66,32 @@ export class FeedbackService extends BaseService<Feedback> {
     }
 
     async ratedDoctor(doctor_id: string) {
-        const data = []
-
-        const rated_one = await this.feedbackRepository.count({
-            where: {
-                consultation: { doctor: { id: doctor_id} },
-                rated: 1
-            } , relations: ['consultation']
+        const doctor = await this.doctorRepository.findOne({
+            where: { id: doctor_id }
         })
 
-        data.push(rated_one)
-
-        const rated_two = await this.feedbackRepository.count({
-            where: {
-                consultation: { doctor: { id: doctor_id} },
-                rated: 2
-            } , relations: ['consultation']
+        const consultations = await this.consultationRepository.find({
+            where: { doctor: doctor },
+            relations: ['feedback'],
+            select: ['feedback']
         })
 
-        data.push(rated_two)
+        const data = [0, 0, 0, 0, 0]
+        for (const consultation of consultations) {
+            if (!consultation.feedback)
+                continue
 
-        const rated_three = await this.feedbackRepository.count({
-            where: {
-                consultation: { doctor: { id: doctor_id} },
-                rated: 3
-            } , relations: ['consultation']
-        })
-
-        data.push(rated_three)
-
-        const rated_four = await this.feedbackRepository.count({
-            where: {
-                consultation: { doctor: { id: doctor_id} },
-                rated: 4
-            } , relations: ['consultation']
-        })
-
-        data.push(rated_four)
-
-        const rated_five = await this.feedbackRepository.count({
-            where: {
-                consultation: { doctor: { id: doctor_id} },
-                rated: 5
-            } , relations: ['consultation']
-        })
-
-        data.push(rated_five)
+            if (consultation.feedback.rated === 1)
+                data[0]++
+            else if (consultation.feedback.rated === 2)
+                data[1]++
+            else if (consultation.feedback.rated === 3)
+                data[2]++
+            else if (consultation.feedback.rated === 4)
+                data[3]++
+            else if (consultation.feedback.rated === 5)
+                data[4]++
+        }
 
         return { data: data }
     }

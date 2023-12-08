@@ -5,10 +5,11 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { FeedbackService } from './services/feedback.service';
 import { Consultation } from '../consultation/entities/consultation.entity';
 import { FeedbackController } from './controllers/feedback.controller';
+import { Doctor } from '../consultation/entities/doctor.entity';
 
 @Module({
     imports: [
-        TypeOrmModule.forFeature([Feedback, Consultation]),
+        TypeOrmModule.forFeature([Feedback, Consultation, Doctor]),
         ScheduleModule.forRoot()
     ],
     controllers: [
