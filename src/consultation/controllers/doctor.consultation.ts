@@ -69,4 +69,11 @@ export class DoctorConsultation {
     ) {
         return await this.consultationService.countUserByDoctorConsultation(doctor_id)
     }
+
+    @UseGuards(AdminGuard)
+    @ApiBearerAuth()
+    @Get('consultation/dashboard')
+    async consultationDashboard() {
+        return await this.consultationService.consultationDashboard()
+    }
 }

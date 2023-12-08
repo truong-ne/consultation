@@ -2,7 +2,7 @@ import { Injectable, NotFoundException, ConflictException, UnauthorizedException
 import { InjectRepository } from "@nestjs/typeorm";
 import { BaseService } from "../../config/base.service";
 import { Doctor } from "../entities/doctor.entity";
-import { Repository } from "typeorm";
+import { Between, Repository } from "typeorm";
 import { Consultation } from "../entities/consultation.entity";
 import { User } from "../entities/user.entity";
 import { Status } from "../../config/enum.constants";
@@ -200,6 +200,26 @@ export class ConsultationService extends BaseService<Consultation> {
         });
 
         return averageRatingsPerDoctor;
+    }
+
+    async consultationDashboard() {
+        const startOfMonth = this.VNTime(-this.VNTime().getUTCDate() + 1)
+        const endOfMonth = this.VNTime(-this.VNTime().getUTCDate() + 1).getMonth() === 11 ? this.VNTime(32 - this.VNTime().getUTCDate()) : this.VNTime(0);
+
+        const quantityThisMonth = await this.consultationRepository.count({
+            where: {
+                updated_at: Between(startOfMonth, endOfMonth)
+            }
+        })
+
+        const quantity = await this.consultationRepository.count()
+
+        return {
+            data: {
+                quantity: quantity,
+                quantityThisMonth: quantityThisMonth
+            }
+        }
     }
 
     async countUserByDoctorConsultation(doctor_id: string): Promise<any> {
