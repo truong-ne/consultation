@@ -222,6 +222,74 @@ export class ConsultationService extends BaseService<Consultation> {
         }
     }
 
+    async moneyDashboard() {
+        const startOfMonth = this.VNTime(-this.VNTime().getUTCDate() + 1)
+        const endOfMonth = this.VNTime(-this.VNTime().getUTCDate() + 1).getMonth() === 11 ? this.VNTime(32 - this.VNTime().getUTCDate()) : this.VNTime(0);
+
+        let moneyThisMonth = await this.consultationRepository.sum('price', {
+            status: Status.finished,
+            updated_at: Between(startOfMonth, endOfMonth)
+        })
+
+        moneyThisMonth += await this.consultationRepository.sum('price', {
+            status: Status.confirmed,
+            updated_at: Between(startOfMonth, endOfMonth)
+        })
+
+        let totalMoney = await this.consultationRepository.sum('price', { status: Status.finished })
+        totalMoney += await this.consultationRepository.sum('price', { status: Status.confirmed })
+
+        return {
+            data: {
+                totalMoney: totalMoney,
+                quantityThisMonth: moneyThisMonth
+            }
+        }
+    }
+
+    async moneyChart() {
+        const currentYear = this.VNTime().getUTCFullYear();
+
+        const moneyByMonth = [];
+        for (let month = 0; month < 12; month++) {
+            const startOfMonth = this.VNTime(-this.VNTime().getUTCDate() + 1);
+            const endOfMonth = month === 11 ?
+                this.VNTime(32 - this.VNTime().getUTCDate()) :
+                this.VNTime(0);
+
+            startOfMonth.setUTCMonth(month);
+            endOfMonth.setUTCMonth(month);
+
+            let moneyThisMonth = await this.consultationRepository.sum('price', {
+                status: Status.finished,
+                updated_at: Between(startOfMonth, endOfMonth)
+            });
+
+            moneyThisMonth += await this.consultationRepository.sum('price', {
+                status: Status.confirmed,
+                updated_at: Between(startOfMonth, endOfMonth)
+            });
+
+            if (moneyThisMonth !== null) {
+                moneyByMonth.push({
+                    month: month + 1,
+                    totalMoneyThisMonth: moneyThisMonth
+                });
+            } else {
+                moneyByMonth.push({
+                    month: month + 1,
+                    totalMoneyThisMonth: 0
+                });
+            }
+        }
+
+        return {
+            data: {
+                moneyByMonth: moneyByMonth
+            }
+        };
+    }
+
     async consultationChart() {
         const finish = await this.consultationRepository.count({
             where: { status: Status.finished }
