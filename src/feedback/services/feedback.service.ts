@@ -68,40 +68,45 @@ export class FeedbackService extends BaseService<Feedback> {
 
         const rated_one = await this.feedbackRepository.count({
             where: {
+                consultation: { doctor: { id: doctor_id} },
                 rated: 1
-            }
+            } , relations: ['consultation']
         })
 
         data.push(rated_one)
 
         const rated_two = await this.feedbackRepository.count({
             where: {
+                consultation: { doctor: { id: doctor_id} },
                 rated: 2
-            }
+            } , relations: ['consultation']
         })
 
         data.push(rated_two)
 
         const rated_three = await this.feedbackRepository.count({
             where: {
+                consultation: { doctor: { id: doctor_id} },
                 rated: 3
-            }
+            } , relations: ['consultation']
         })
 
         data.push(rated_three)
 
         const rated_four = await this.feedbackRepository.count({
             where: {
+                consultation: { doctor: { id: doctor_id} },
                 rated: 4
-            }
+            } , relations: ['consultation']
         })
 
         data.push(rated_four)
 
         const rated_five = await this.feedbackRepository.count({
             where: {
+                consultation: { doctor: { id: doctor_id} },
                 rated: 5
-            }
+            } , relations: ['consultation']
         })
 
         data.push(rated_five)

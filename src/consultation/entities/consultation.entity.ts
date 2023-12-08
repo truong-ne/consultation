@@ -17,7 +17,7 @@ export class Consultation {
     id: string
 
     @Column({ name: 'date' })
-    date: string
+    date: Date
 
     @Column({ name: 'expected_time' })
     expected_time: string

@@ -97,4 +97,11 @@ export class DoctorConsultation {
     async moneyChart() {
         return await this.consultationService.moneyChart()
     }
+
+    @UseGuards(AdminGuard)
+    @ApiBearerAuth()
+    @Get('consultation/money/chart/:doctorId')
+    async moneyChartByDoctorId(@Param('doctorId') doctorId: string) {
+        return await this.consultationService.moneyChartByDoctorId(doctorId)
+    }
 }
