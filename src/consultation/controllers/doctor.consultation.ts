@@ -7,6 +7,7 @@ import { DoctorGuard } from "../../auth/guards/doctor.guard";
 import { Status } from "../../config/enum.constants";
 import { Admin } from "typeorm";
 import { AdminGuard } from "src/auth/guards/admin.guard";
+import * as uuid from 'uuid-random'
 
 @ApiTags('DOCTOR CONSULTATION')
 @Controller('doctor')
@@ -103,5 +104,20 @@ export class DoctorConsultation {
     @Get('consultation/money/chart/:doctorId')
     async moneyChartByDoctorId(@Param('doctorId') doctorId: string) {
         return await this.consultationService.moneyChartByDoctorId(doctorId)
+    }
+
+    @UseGuards(DoctorGuard)
+    @ApiBearerAuth()
+    @Post('gen-consultation')
+    async genConsultation() {
+        return this.consultationService.generate({
+            id: uuid(),
+            name: "healthlinemanager2023",
+            email: "healthlinemanager2023@gmail.com",
+            avatar: "",
+            appId: "vpaas-magic-cookie-fd0744894f194f3ea748884f83cec195",
+            kid: "vpaas-magic-cookie-fd0744894f194f3ea748884f83cec195/96e059",
+            time: 20,
+        });
     }
 }
