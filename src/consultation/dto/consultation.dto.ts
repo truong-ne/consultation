@@ -29,3 +29,9 @@ export class BookConsultation {
     @ApiProperty({ example: null })
     discount_code: string
 }
+
+export class DateDto {
+    @IsNotEmpty()
+    @ApiProperty({ example: '12/12/2023' })
+    date: string
+}
