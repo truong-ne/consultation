@@ -2,10 +2,6 @@ import { AmqpConnection, RabbitRPC } from '@golevelup/nestjs-rabbitmq';
 import { Injectable } from '@nestjs/common';
 import { ConsultationService } from '../services/consultation.service';
 
-// class Dto {
-//     doctor_id: string
-//     date: string
-// }
 @Injectable()
 export class ConsultationConsumer {
     constructor(

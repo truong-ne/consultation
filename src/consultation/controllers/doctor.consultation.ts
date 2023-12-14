@@ -143,6 +143,6 @@ export class DoctorConsultation {
             return 1
         }
 
-        return await this.consultationService.doctorSchedule(doctor_id, date, working_time)
+        return await this.consultationService.doctorSchedule(doctor_id, dto.date, working_time)
     }
 }
