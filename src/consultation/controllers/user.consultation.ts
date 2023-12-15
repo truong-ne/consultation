@@ -56,7 +56,7 @@ export class UserConsultation {
     @UseGuards(UserGuard)
     @ApiOperation({ summary: 'Tổng hợp các cuộc hẹn của khách hàng' })
     @ApiBearerAuth()
-    @Get()
+    @Get('user')
     async userConsultation(
         @Req() req
     ) {
