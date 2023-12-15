@@ -13,6 +13,7 @@ import * as uuid from 'uuid-random'
 import { promisify } from 'util'
 import * as dotenv from 'dotenv'
 import { Discount } from "src/discount/entities/discount.entity";
+import { AmqpConnection } from "@golevelup/nestjs-rabbitmq";
 dotenv.config()
 
 @Injectable()
@@ -21,7 +22,8 @@ export class ConsultationService extends BaseService<Consultation> {
         @InjectRepository(Consultation) private readonly consultationRepository: Repository<Consultation>,
         @InjectRepository(Doctor) private readonly doctorRepository: Repository<Doctor>,
         @InjectRepository(User) private readonly userRepository: Repository<User>,
-        @InjectRepository(Discount) private readonly discountRepository: Repository<Discount>
+        @InjectRepository(Discount) private readonly discountRepository: Repository<Discount>,
+        private readonly amqpConnection: AmqpConnection
     ) {
         super(consultationRepository)
     }
@@ -135,6 +137,68 @@ export class ConsultationService extends BaseService<Consultation> {
 
         return {
             message: 'consultation_canceled'
+        }
+    }
+
+    async userConsultation(userId: string) {
+        const consultations = await this.consultationRepository.find({
+            where: { user: { id: userId } },
+            relations: ['doctor', 'user']
+        })
+
+        const data = {
+            coming: [],
+            finish: [],
+            cancel: []
+        }
+
+        if(consultations.length === 0)
+            return {
+                code: 200,
+                message: "success",
+                data: data
+            }
+
+        const rabbitmq = await this.amqpConnection.request<any>({
+            exchange: 'healthline.user.information',
+            routingKey: 'medical',
+            payload: Array.from(new Set(consultations.map(c => c.medical_record))),
+            timeout: 10000,
+        })
+
+        if(rabbitmq.code !== 200) {
+            return rabbitmq.message
+        }
+    
+        consultations.forEach(c => {
+            for(let i=0; i<rabbitmq.data.length; i++)
+                if(c.medical_record === rabbitmq.data[i].uid) {
+                    const consultation = {
+                        id: c.id,
+                        doctor: {
+                            avatar: c.doctor.avatar,
+                            full_name: c.doctor.full_name,
+                            biography: c.doctor.biography
+                        },
+                        medical: rabbitmq.data[i],
+                        date: c.date,
+                        expected_time: c.expected_time,
+                        price: c.price,
+                        updated_at: c.updated_at
+                    }
+                    if(c.status === 'pending' || c.status === 'confirmed')
+                        data.coming.push(consultation)
+                    else if(c.status === 'finished')
+                        data.finish.push(consultation)
+                    else data.cancel.push(consultation)
+                    break
+                }
+        })
+
+        return {
+            code: 200,
+            message: "success",
+            data: data
         }
     }
 

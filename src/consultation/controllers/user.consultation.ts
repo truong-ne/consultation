@@ -52,4 +52,14 @@ export class UserConsultation {
     ) {
         return await this.consultationService.cancelConsultation(req.user.id, consultation_id)
     }
+
+    @UseGuards(UserGuard)
+    @ApiOperation({ summary: 'Tổng hợp các cuộc hẹn của khách hàng' })
+    @ApiBearerAuth()
+    @Get()
+    async userConsultation(
+        @Req() req
+    ) {
+        return await this.consultationService.userConsultation(req.user.id)
+    }
 }
