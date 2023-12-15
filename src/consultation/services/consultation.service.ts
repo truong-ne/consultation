@@ -184,6 +184,7 @@ export class ConsultationService extends BaseService<Consultation> {
                         date: c.date,
                         expected_time: c.expected_time,
                         price: c.price,
+                        status: c.status,
                         updated_at: c.updated_at
                     }
                     if(c.status === 'pending' || c.status === 'confirmed')
