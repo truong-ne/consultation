@@ -22,6 +22,9 @@ export class Doctor {
     @Column({ nullable: true })
     email: string
 
+    @Column({ default: true })
+    isActive: boolean
+
     @Column({ name: 'full_name' })
     full_name: string
 

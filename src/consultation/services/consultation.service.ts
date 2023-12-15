@@ -7,6 +7,12 @@ import { Consultation } from "../entities/consultation.entity";
 import { User } from "../entities/user.entity";
 import { Status } from "../../config/enum.constants";
 import { BookConsultation } from "../dto/consultation.dto";
+import * as fs from 'fs'
+import * as jsonwebtoken from 'jsonwebtoken'
+import * as uuid from 'uuid-random'
+import { promisify } from 'util'
+import * as dotenv from 'dotenv'
+dotenv.config()
 
 @Injectable()
 export class ConsultationService extends BaseService<Consultation> {
@@ -60,7 +66,7 @@ export class ConsultationService extends BaseService<Consultation> {
         consultation.doctor = doctor
         consultation.medical_record = dto.medical_record
         var date = new Date(dto.date.replace(/(\d+[/])(\d+[/])/, '$2$1'))
-        if(isNaN(date.valueOf()))
+        if (isNaN(date.valueOf()))
             throw new BadRequestException('wrong_syntax')
         else
             consultation.date = date
@@ -134,7 +140,7 @@ export class ConsultationService extends BaseService<Consultation> {
 
     async bDate(bdate: string, expected_time: string, doctor: Doctor, working_time: string) {
         var date = new Date(bdate.replace(/(\d+[/])(\d+[/])/, '$2$1'))
-        if(isNaN(date.valueOf()))
+        if (isNaN(date.valueOf()))
             throw new BadRequestException('wrong_syntax')
         const consultations = await this.consultationRepository.find({
             where: {
@@ -303,13 +309,13 @@ export class ConsultationService extends BaseService<Consultation> {
             let moneyThisMonth = await this.consultationRepository.sum('price', {
                 status: Status.finished,
                 date: Between(startOfMonth, endOfMonth),
-                doctor: { id : id }
+                doctor: { id: id }
             });
 
             moneyThisMonth += await this.consultationRepository.sum('price', {
                 status: Status.confirmed,
                 date: Between(startOfMonth, endOfMonth),
-                doctor: { id : id }
+                doctor: { id: id }
             });
 
             if (moneyThisMonth !== null) {
@@ -394,5 +400,35 @@ export class ConsultationService extends BaseService<Consultation> {
                 quantity: quantity
             },
         }
+    }
+
+    generate({ id, name, email, avatar, appId, kid, time }) {
+        const jwt = jsonwebtoken.sign({
+            aud: 'jitsi',
+            iss: 'chat',
+            "iat": Date.now(),
+            "exp": Date.now() + 1000 * 60 * time,
+            "nbf": Date.now() + 5000,
+            sub: appId,
+            context: {
+                features: {
+                    "livestreaming": true,
+                    "outbound-call": true,
+                    "sip-outbound-call": true,
+                    "transcription": true,
+                    "recording": true
+                },
+                user: {
+                    id,
+                    name,
+                    avatar,
+                    email: email,
+                    moderator: false,
+                    "hidden-from-recorder": false,
+                }
+            },
+            room: '*',
+        }, process.env.PRIVATE_CONSULTATION, { algorithm: 'RS256', header: { kid } })
+        return jwt;
     }
 }

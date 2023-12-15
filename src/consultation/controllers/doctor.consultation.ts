@@ -1,5 +1,5 @@
 import { Body, Controller, Param, Post, Get, UseGuards, Req, Inject, Delete } from "@nestjs/common";
-import { ApiBearerAuth, ApiOperation, ApiParam, ApiResponse, ApiTags } from "@nestjs/swagger";
+import { ApiBearerAuth, ApiOperation, ApiParam, ApiProperty, ApiResponse, ApiTags } from "@nestjs/swagger";
 import { CACHE_MANAGER } from "@nestjs/cache-manager";
 import { Cache } from "cache-manager";
 import { ConsultationService } from "../services/consultation.service";
@@ -7,13 +7,17 @@ import { DoctorGuard } from "../../auth/guards/doctor.guard";
 import { Status } from "../../config/enum.constants";
 import { Admin } from "typeorm";
 import { AdminGuard } from "src/auth/guards/admin.guard";
+import * as uuid from 'uuid-random'
+import { AmqpConnection } from "@golevelup/nestjs-rabbitmq";
+import { DateDto } from "../dto/consultation.dto";
 
 @ApiTags('DOCTOR CONSULTATION')
 @Controller('doctor')
 export class DoctorConsultation {
     constructor(
         private readonly consultationService: ConsultationService,
-        @Inject(CACHE_MANAGER) private cacheManager: Cache
+        @Inject(CACHE_MANAGER) private cacheManager: Cache,
+        private readonly amqpConnection: AmqpConnection,
     ) { }
 
     @UseGuards(DoctorGuard)
@@ -103,5 +107,42 @@ export class DoctorConsultation {
     @Get('consultation/money/chart/:doctorId')
     async moneyChartByDoctorId(@Param('doctorId') doctorId: string) {
         return await this.consultationService.moneyChartByDoctorId(doctorId)
+    }
+
+    @UseGuards(DoctorGuard)
+    @ApiBearerAuth()
+    @Post('gen-consultation')
+    async genConsultation() {
+        return this.consultationService.generate({
+            id: uuid(),
+            name: "healthlinemanager2023",
+            email: "healthlinemanager2023@gmail.com",
+            avatar: "",
+            appId: "vpaas-magic-cookie-fd0744894f194f3ea748884f83cec195",
+            kid: "vpaas-magic-cookie-fd0744894f194f3ea748884f83cec195/96e059",
+            time: 20,
+        });
+    }
+
+    @Post(':id/schedule')
+    async getDoctorSchedule(
+        @Param('id') doctor_id: string,
+        @Body() dto: DateDto
+    ) {
+        const working_time = await this.amqpConnection.request<string>({
+            exchange: 'healthline.consultation.schedule',
+            routingKey: 'schedule',
+            payload: {
+                doctor_id: doctor_id,
+                date: dto.date,
+            },
+            timeout: 10000
+        })
+
+        if (!!working_time['message']) {
+            return 1
+        }
+
+        return await this.consultationService.doctorSchedule(doctor_id, dto.date, working_time)
     }
 }
