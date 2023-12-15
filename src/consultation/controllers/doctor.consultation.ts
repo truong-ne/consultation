@@ -140,7 +140,11 @@ export class DoctorConsultation {
         })
 
         if (!!working_time['message']) {
-            return 1
+            return {
+                code: 200,
+                message: "success",
+                data: []
+            }
         }
 
         return await this.consultationService.doctorSchedule(doctor_id, dto.date, working_time)
