@@ -9,12 +9,13 @@ import { ConsultationService } from './services/consultation.service';
 import { RabbitMQModule } from '@golevelup/nestjs-rabbitmq';
 import * as dotenv from 'dotenv'
 import { ConsultationConsumer } from './consumers/consultation.consumer';
+import { Discount } from '../discount/entities/discount.entity';
 
 dotenv.config()
 
 @Module({
     imports: [
-        TypeOrmModule.forFeature([Doctor, Consultation, User]),
+        TypeOrmModule.forFeature([Doctor, Consultation, User, Discount]),
         RabbitMQModule.forRoot(RabbitMQModule, {
             exchanges: [
                 {

@@ -12,6 +12,7 @@ import * as jsonwebtoken from 'jsonwebtoken'
 import * as uuid from 'uuid-random'
 import { promisify } from 'util'
 import * as dotenv from 'dotenv'
+import { Discount } from "src/discount/entities/discount.entity";
 dotenv.config()
 
 @Injectable()
@@ -19,7 +20,8 @@ export class ConsultationService extends BaseService<Consultation> {
     constructor(
         @InjectRepository(Consultation) private readonly consultationRepository: Repository<Consultation>,
         @InjectRepository(Doctor) private readonly doctorRepository: Repository<Doctor>,
-        @InjectRepository(User) private readonly userRepository: Repository<User>
+        @InjectRepository(User) private readonly userRepository: Repository<User>,
+        @InjectRepository(Discount) private readonly discountRepository: Repository<Discount>
     ) {
         super(consultationRepository)
     }
@@ -71,17 +73,38 @@ export class ConsultationService extends BaseService<Consultation> {
         else
             consultation.date = date
         consultation.expected_time = dto.expected_time
-        consultation.price = dto.price
+
+        const times = (dto.expected_time.split("-").length) * 30
+        if(dto.discount_code !== "") {
+            const discount = await this.discountRepository.findOneBy({ code : dto.discount_code })
+            if(!discount) throw new NotFoundException("discount_not_found")
+            consultation.discount_code = discount
+            if(discount.type === "vnd") {
+                consultation.price = doctor.fee_per_minutes * 1 * 30 - discount.value
+            } else consultation.price = doctor.fee_per_minutes * times - (doctor.fee_per_minutes * times / 100 * discount.value)
+        } else
+            consultation.price = doctor.fee_per_minutes * times
+
+        if(user.account_balance >= consultation.price)
+            user.account_balance -= consultation.price
+        else throw new BadRequestException("you_have_not_enough_money")
         consultation.updated_at = this.VNTime()
 
         const data = await this.consultationRepository.save(consultation)
 
+        try {
+            await this.userRepository.save(user)
+        } catch (error) {
+            await this.consultationRepository.delete(data)
+            throw new BadRequestException("create_consultation_failed")
+        }
         return {
             data: {
                 id: data.id,
                 user: data.user.id,
                 doctor: data.doctor.id,
                 date: data.date,
+                price: data.price,
                 expected_time: data.expected_time,
                 status: data.status
             },

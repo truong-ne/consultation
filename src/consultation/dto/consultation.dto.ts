@@ -21,11 +21,6 @@ export class BookConsultation {
     @ApiProperty({ example: '14-15' })
     expected_time: string
 
-    @IsNotEmpty()
-    @ApiProperty({ example: 200 })
-    @IsNumber()
-    price: number
-
     @ApiProperty({ example: null })
     discount_code: string
 }
