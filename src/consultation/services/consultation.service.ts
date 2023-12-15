@@ -37,7 +37,11 @@ export class ConsultationService extends BaseService<Consultation> {
 
         console.log("FLAG" + bookingDate)
 
-        return bookingDate
+        return {
+            code: 200,
+            message: "success",
+            data: bookingDate
+        }
     }
 
     async bookConsultation(user_id: string, dto: BookConsultation, working_time: string) {
