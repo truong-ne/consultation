@@ -26,6 +26,9 @@ export class User {
     @Column({ name: 'email_notification', default: false })
     email_notification: boolean
 
+    @Column({ default: true })
+    isActive: boolean
+
     @Column({ type: 'timestamp', name: 'created_at', default: () => 'CURRENT_TIMESTAMP' })
     created_at: Date
 
