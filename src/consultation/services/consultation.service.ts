@@ -172,13 +172,13 @@ export class ConsultationService extends BaseService<Consultation> {
     
         consultations.forEach(c => {
             for(let i=0; i<rabbitmq.data.length; i++)
-                if(c.medical_record === rabbitmq.data[i].uid) {
+                if(c.medical_record === rabbitmq.data[i].id) {
                     const consultation = {
                         id: c.id,
                         doctor: {
                             avatar: c.doctor.avatar,
                             full_name: c.doctor.full_name,
-                            biography: c.doctor.biography
+                            specialty: c.doctor.specialty
                         },
                         medical: rabbitmq.data[i],
                         date: c.date,
