@@ -76,23 +76,32 @@ export class FeedbackService extends BaseService<Feedback> {
             select: ['feedback']
         })
 
-        const data = [0, 0, 0, 0, 0]
+        const data = []
+        const rating = [0, 0, 0, 0, 0]
         for (const consultation of consultations) {
             if (!consultation.feedback)
                 continue
-
+            data.push({
+                id: consultation.feedback.id,
+                user: consultation.feedback.user_id,
+                feedback: consultation.feedback.feedback,
+                rated: consultation.feedback.rated
+            })
             if (consultation.feedback.rated === 1)
-                data[0]++
+                rating[0]++
             else if (consultation.feedback.rated === 2)
-                data[1]++
+                rating[1]++
             else if (consultation.feedback.rated === 3)
-                data[2]++
+                rating[2]++
             else if (consultation.feedback.rated === 4)
-                data[3]++
+                rating[3]++
             else if (consultation.feedback.rated === 5)
-                data[4]++
+                rating[4]++
         }
 
-        return { data: data }
+        return {
+            data: data,
+            rating: rating
+        }
     }
 }
