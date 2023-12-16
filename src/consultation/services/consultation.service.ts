@@ -135,6 +135,8 @@ export class ConsultationService extends BaseService<Consultation> {
         consultation.status = Status.canceled
         await this.consultationRepository.save(consultation)
 
+        await this.refund(consultation.user.id, consultation.price)
+
         return {
             message: 'consultation_canceled'
         }
@@ -203,10 +205,17 @@ export class ConsultationService extends BaseService<Consultation> {
         }
     }
 
+    async refund(userId: string, money: number) {
+        const user = await this.userRepository.findOneBy({ id: userId })
+        user.account_balance += money
+
+        await this.userRepository.save(user)
+    }
+
     async doctorConsultation(doctor_id: string, consultation_id: string, status: Status) {
         const consultation = await this.consultationRepository.findOne({
             where: { id: consultation_id },
-            relations: ['doctor']
+            relations: ['doctor', 'user']
         })
 
         if (!consultation) throw new NotFoundException('consultation_not_found')
@@ -219,6 +228,8 @@ export class ConsultationService extends BaseService<Consultation> {
 
         consultation.status = status
         const data = await this.consultationRepository.save(consultation)
+
+        await this.refund(consultation.user.id, consultation.price)
 
         return {
 
