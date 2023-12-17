@@ -14,6 +14,7 @@ import { promisify } from 'util'
 import * as dotenv from 'dotenv'
 import { Discount } from "src/discount/entities/discount.entity";
 import { AmqpConnection } from "@golevelup/nestjs-rabbitmq";
+import { of } from "rxjs";
 dotenv.config()
 
 @Injectable()
@@ -43,6 +44,43 @@ export class ConsultationService extends BaseService<Consultation> {
             code: 200,
             message: "success",
             data: bookingDate
+        }
+    }
+
+    async getConsultation(doctor_id: string) {
+        const doctor = await this.doctorRepository.findOne({
+            where: { id: doctor_id }
+        })
+
+        const data = {
+            pending: [],
+            confirmed: [],
+            finished: [],
+            canceled: [],
+            denied: []
+        }
+
+        const consultations = await this.consultationRepository.find({
+            where: { doctor: doctor }
+        })
+
+
+        for (const consultation of consultations) {
+            if (consultation.status === Status.pending)
+                data.pending.push(consultation)
+            else if (consultation.status === Status.confirmed)
+                data.confirmed.push(consultation)
+            else if (consultation.status === Status.finished)
+                data.finished.push(consultation)
+            else if (consultation.status === Status.canceled)
+                data.canceled.push(consultation)
+            else if (consultation.status === Status.denied)
+                data.denied.push(consultation)
+            else continue
+        }
+
+        return {
+            data: data
         }
     }
 
@@ -81,17 +119,17 @@ export class ConsultationService extends BaseService<Consultation> {
         consultation.expected_time = dto.expected_time
 
         const times = (dto.expected_time.split("-").length) * 30
-        if(dto.discount_code !== "") {
-            const discount = await this.discountRepository.findOneBy({ code : dto.discount_code })
-            if(!discount) throw new NotFoundException("discount_not_found")
+        if (dto.discount_code !== "") {
+            const discount = await this.discountRepository.findOneBy({ code: dto.discount_code })
+            if (!discount) throw new NotFoundException("discount_not_found")
             consultation.discount_code = discount
-            if(discount.type === "vnd") {
+            if (discount.type === "vnd") {
                 consultation.price = doctor.fee_per_minutes * 1 * 30 - discount.value
             } else consultation.price = doctor.fee_per_minutes * times - (doctor.fee_per_minutes * times / 100 * discount.value)
         } else
             consultation.price = doctor.fee_per_minutes * times
 
-        if(user.account_balance >= consultation.price)
+        if (user.account_balance >= consultation.price)
             user.account_balance -= consultation.price
         else throw new BadRequestException("you_have_not_enough_money")
         consultation.updated_at = this.VNTime()
@@ -154,7 +192,7 @@ export class ConsultationService extends BaseService<Consultation> {
             cancel: []
         }
 
-        if(consultations.length === 0)
+        if (consultations.length === 0)
             return {
                 code: 200,
                 message: "success",
@@ -168,13 +206,13 @@ export class ConsultationService extends BaseService<Consultation> {
             timeout: 10000,
         })
 
-        if(rabbitmq.code !== 200) {
+        if (rabbitmq.code !== 200) {
             return rabbitmq.message
         }
-    
+
         consultations.forEach(c => {
-            for(let i=0; i<rabbitmq.data.length; i++)
-                if(c.medical_record === rabbitmq.data[i].id) {
+            for (let i = 0; i < rabbitmq.data.length; i++)
+                if (c.medical_record === rabbitmq.data[i].id) {
                     const consultation = {
                         id: c.id,
                         doctor: {
@@ -189,9 +227,9 @@ export class ConsultationService extends BaseService<Consultation> {
                         status: c.status,
                         updated_at: c.updated_at
                     }
-                    if(c.status === 'pending' || c.status === 'confirmed')
+                    if (c.status === 'pending' || c.status === 'confirmed')
                         data.coming.push(consultation)
-                    else if(c.status === 'finished')
+                    else if (c.status === 'finished')
                         data.finish.push(consultation)
                     else data.cancel.push(consultation)
                     break

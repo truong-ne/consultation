@@ -21,6 +21,17 @@ export class DoctorConsultation {
     ) { }
 
     @UseGuards(DoctorGuard)
+    @ApiOperation({ summary: 'Lấy tất cả cuộc hẹn của bác sĩ (admin + doctor)' })
+    @ApiBearerAuth()
+    @Get(':doctor_id')
+    async getConsultation(
+        @Param('doctor_id') doctor_id: string,
+        @Req() req
+    ) {
+        return await this.consultationService.getConsultation(doctor_id)
+    }
+
+    @UseGuards(DoctorGuard)
     @ApiOperation({ summary: 'Bác sĩ xác nhận cuộc hẹn của khách hàng' })
     @ApiBearerAuth()
     @Post(':consultation_id')
@@ -32,21 +43,6 @@ export class DoctorConsultation {
         return {
             data: data,
             message: 'consultation_confirmed'
-        }
-    }
-
-    @UseGuards(DoctorGuard)
-    @ApiOperation({ summary: 'Bác sĩ từ chối cuộc hẹn của khách hàng' })
-    @ApiBearerAuth()
-    @Delete(':consultation_id')
-    async denyConsultation(
-        @Param('consultation_id') consultation_id: string,
-        @Req() req
-    ) {
-        const data = await this.consultationService.doctorConsultation(req.user.id, consultation_id, Status.denied)
-        return {
-            data: data,
-            message: 'consultation_denied'
         }
     }
 
