@@ -25,9 +25,18 @@ export class FeedbackController {
         return await this.feedbackService.userFeedback(req.user.id, dto)
     }
 
+    @UseGuards(UserGuard)
+    @ApiBearerAuth()
+    @Get(':user_id/user')
+    async UserFeedback(
+        @Param('user_id') user_id: string
+    ) {
+        return await this.feedbackService.ratedDoctor(user_id)
+    }
+
     @UseGuards(DoctorGuard)
     @ApiBearerAuth()
-    @Get(':doctor_id')
+    @Get(':doctor_id/doctor')
     async rated(
         @Param('doctor_id') doctor_id: string
     ) {

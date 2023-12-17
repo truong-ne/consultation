@@ -65,6 +65,19 @@ export class FeedbackService extends BaseService<Feedback> {
         return { message: 'feedback_successfully' }
     }
 
+    async getUserFeedback(user_id: string) {
+        const feedbacks = await this.feedbackRepository.find({
+            where: { user_id: user_id }
+        })
+
+        const data = []
+
+        for (const feedback in feedbacks)
+            data.push(feedback)
+
+        return data
+    }
+
     async ratedDoctor(doctor_id: string) {
         const doctor = await this.doctorRepository.findOne({
             where: { id: doctor_id }
