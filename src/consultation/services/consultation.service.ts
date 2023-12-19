@@ -161,7 +161,8 @@ export class ConsultationService extends BaseService<Consultation> {
                 date: data.date,
                 price: data.price,
                 expected_time: data.expected_time,
-                status: data.status
+                status: data.status,
+                jisti_token: data.jisti_token
             },
             message: 'consultation_pending'
         }
@@ -236,6 +237,7 @@ export class ConsultationService extends BaseService<Consultation> {
                         expected_time: c.expected_time,
                         price: c.price,
                         status: c.status,
+                        jisti_token: c.jisti_token,
                         updated_at: c.updated_at
                     }
                     if (c.status === 'pending' || c.status === 'confirmed')
