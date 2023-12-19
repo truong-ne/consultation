@@ -29,6 +29,9 @@ export class User {
     @Column({ default: true })
     isActive: boolean
 
+    @Column({ default: false })
+    isGoogle: boolean
+
     @Column({ type: 'timestamp', name: 'created_at', default: () => 'CURRENT_TIMESTAMP' })
     created_at: Date
 
