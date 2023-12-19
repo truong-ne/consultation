@@ -105,21 +105,6 @@ export class DoctorConsultation {
         return await this.consultationService.moneyChartByDoctorId(doctorId)
     }
 
-    @UseGuards(DoctorGuard)
-    @ApiBearerAuth()
-    @Post('gen-consultation')
-    async genConsultation() {
-        return this.consultationService.generate({
-            id: uuid(),
-            name: "healthlinemanager2023",
-            email: "healthlinemanager2023@gmail.com",
-            avatar: "",
-            appId: "vpaas-magic-cookie-fd0744894f194f3ea748884f83cec195",
-            kid: "vpaas-magic-cookie-fd0744894f194f3ea748884f83cec195/96e059",
-            time: 20,
-        });
-    }
-
     @Post(':id/schedule')
     async getDoctorSchedule(
         @Param('id') doctor_id: string,

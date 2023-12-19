@@ -28,6 +28,9 @@ export class Consultation {
     @Column({ name: 'medical_record', nullable: true })
     medical_record: string
 
+    @Column({ name: 'jisti_token', nullable: true })
+    jisti_token: string
+
     @Column({ type: 'enum', enum: Status, default: Status.pending })
     status: Status
 

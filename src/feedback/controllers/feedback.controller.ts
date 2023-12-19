@@ -34,8 +34,6 @@ export class FeedbackController {
         return await this.feedbackService.ratedDoctor(user_id)
     }
 
-    @UseGuards(DoctorGuard)
-    @ApiBearerAuth()
     @Get(':doctor_id/doctor')
     async rated(
         @Param('doctor_id') doctor_id: string

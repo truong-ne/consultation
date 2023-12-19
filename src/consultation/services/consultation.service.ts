@@ -31,7 +31,7 @@ export class ConsultationService extends BaseService<Consultation> {
 
     async doctorSchedule(doctor_id: string, date: string, working_time: string) {
         const doctor = await this.doctorRepository.findOne({
-            where: { id: doctor_id }
+            where: { id: doctor_id },
         })
 
         if (!doctor) throw new NotFoundException('doctor_not_found')
@@ -61,7 +61,8 @@ export class ConsultationService extends BaseService<Consultation> {
         }
 
         const consultations = await this.consultationRepository.find({
-            where: { doctor: doctor }
+            where: { doctor: doctor },
+            relations: ['doctor']
         })
 
 
@@ -134,6 +135,16 @@ export class ConsultationService extends BaseService<Consultation> {
         else throw new BadRequestException("you_have_not_enough_money")
         consultation.updated_at = this.VNTime()
 
+        const data_jisti = {
+            id: uuid(),
+            name: doctor.full_name,
+            email: doctor.email,
+            avatar: doctor.avatar,
+            appId: "vpaas-magic-cookie-fd0744894f194f3ea748884f83cec195",
+            kid: "vpaas-magic-cookie-fd0744894f194f3ea748884f83cec195/96e059"
+        }
+        const jisti_token = await this.generate(process.env.PRIVATE_CONSULTATION, data_jisti, bookingDate.length * 20)
+        consultation.jisti_token = jisti_token
         const data = await this.consultationRepository.save(consultation)
 
         try {
@@ -543,7 +554,8 @@ export class ConsultationService extends BaseService<Consultation> {
         }
     }
 
-    generate({ id, name, email, avatar, appId, kid, time }) {
+    generate(privateKey, { id, name, email, avatar, appId, kid }, time) {
+        const now = new Date()
         const jwt = jsonwebtoken.sign({
             aud: 'jitsi',
             iss: 'chat',
@@ -569,7 +581,7 @@ export class ConsultationService extends BaseService<Consultation> {
                 }
             },
             room: '*',
-        }, process.env.PRIVATE_CONSULTATION, { algorithm: 'RS256', header: { kid } })
+        }, privateKey, { algorithm: 'RS256', header: { kid } })
         return jwt;
     }
 }
