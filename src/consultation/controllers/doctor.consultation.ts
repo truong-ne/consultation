@@ -53,10 +53,10 @@ export class DoctorConsultation {
         @Param('consultation_id') consultation_id: string,
         @Req() req
     ) {
-        const data = await this.consultationService.doctorConsultation(req.user.id, consultation_id, Status.finished)
+        const data = await this.consultationService.doctorConsultation(req.user.id, consultation_id, Status.denied)
         return {
             data: data,
-            message: 'consultation_finished'
+            message: 'consultation_denied'
         }
     }
 
