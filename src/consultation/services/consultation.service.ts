@@ -52,35 +52,65 @@ export class ConsultationService extends BaseService<Consultation> {
             where: { id: doctor_id }
         })
 
-        const data = {
-            pending: [],
-            confirmed: [],
-            finished: [],
-            canceled: [],
-            denied: []
-        }
-
         const consultations = await this.consultationRepository.find({
             where: { doctor: doctor },
-            relations: ['doctor']
+            relations: ['doctor', 'user']
         })
 
-
-        for (const consultation of consultations) {
-            if (consultation.status === Status.pending)
-                data.pending.push(consultation)
-            else if (consultation.status === Status.confirmed)
-                data.confirmed.push(consultation)
-            else if (consultation.status === Status.finished)
-                data.finished.push(consultation)
-            else if (consultation.status === Status.canceled)
-                data.canceled.push(consultation)
-            else if (consultation.status === Status.denied)
-                data.denied.push(consultation)
-            else continue
+        const data = {
+            coming: [],
+            finish: [],
+            cancel: []
         }
 
+        if (consultations.length === 0)
+            return {
+                code: 200,
+                message: "success",
+                data: data
+            }
+
+        const rabbitmq = await this.amqpConnection.request<any>({
+            exchange: 'healthline.user.information',
+            routingKey: 'medical',
+            payload: Array.from(new Set(consultations.map(c => c.medical_record))),
+            timeout: 10000,
+        })
+
+        if (rabbitmq.code !== 200) {
+            return rabbitmq.message
+        }
+
+        consultations.forEach(c => {
+            for (let i = 0; i < rabbitmq.data.length; i++)
+                if (c.medical_record === rabbitmq.data[i].id) {
+                    const consultation = {
+                        id: c.id,
+                        doctor: {
+                            avatar: c.doctor.avatar,
+                            full_name: c.doctor.full_name,
+                            specialty: c.doctor.specialty
+                        },
+                        medical: rabbitmq.data[i],
+                        date: c.date,
+                        expected_time: c.expected_time,
+                        price: c.price,
+                        status: c.status,
+                        jisti_token: c.jisti_token,
+                        updated_at: c.updated_at
+                    }
+                    if (c.status === 'pending' || c.status === 'confirmed')
+                        data.coming.push(consultation)
+                    else if (c.status === 'finished')
+                        data.finish.push(consultation)
+                    else data.cancel.push(consultation)
+                    break
+                }
+        })
+
         return {
+            code: 200,
+            message: "success",
             data: data
         }
     }
