@@ -580,6 +580,14 @@ export class ConsultationService extends BaseService<Consultation> {
             relations: ['user', 'doctor']
         })
 
+        if(consultations.length === 0) 
+            return {
+                data: {
+                    consultation: [],
+                    quantity: 0
+                },
+            }
+
         const medicals = await this.amqpConnection.request<any>({
             exchange: 'healthline.user.information',
             routingKey: 'user',
