@@ -138,14 +138,14 @@ export class ConsultationService extends BaseService<Consultation> {
             where: { id: user_id }
         })
 
-        if(dto.patient_records.length > 0) {
+        if (dto.patient_records.length > 0) {
             const rabbitmq = await this.amqpConnection.request<any>({
                 exchange: 'healthline.user.information',
                 routingKey: 'patient',
                 payload: dto.patient_records,
                 timeout: 10000,
             })
-    
+
             if (rabbitmq.code !== 200) {
                 return rabbitmq
             }
@@ -519,7 +519,7 @@ export class ConsultationService extends BaseService<Consultation> {
         const consultation = await this.consultationRepository.findOne({ where: { id: consultationId, doctor: { id: doctor_id } }, relations: ['doctor', 'feedback'] })
 
         var patient
-        if(consultation.patient_records.length !== 0) {
+        if (consultation.patient_records.length !== 0) {
             patient = await this.amqpConnection.request<any>({
                 exchange: 'healthline.user.information',
                 routingKey: 'patient',
@@ -588,9 +588,9 @@ export class ConsultationService extends BaseService<Consultation> {
         const jwt = jsonwebtoken.sign({
             aud: 'jitsi',
             iss: 'chat',
-            "iat": Date.now(),
-            "exp": Date.now() + 1000 * 60 * time,
-            "nbf": Date.now() + 5000,
+            "iat": Math.floor(Date.now() / 1000 + 7 * 60 * 60),
+            "exp": Math.floor(Date.now() + 1000 * 60 * time + 7 * 60 * 60),
+            "nbf": Math.floor(Date.now() / 1000 - 5),
             sub: appId,
             context: {
                 features: {
