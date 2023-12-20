@@ -622,8 +622,8 @@ export class ConsultationService extends BaseService<Consultation> {
         const jwt = jsonwebtoken.sign({
             aud: 'jitsi',
             iss: 'chat',
-            "iat": Math.floor(Date.now() / 1000 + 7 * 60 * 60),
-            "exp": Math.floor(Date.now() + 1000 * 60 * time + 7 * 60 * 60),
+            "iat": Math.floor(Date.now() / 1000),
+            "exp": Math.floor(Date.now() / 1000 + 1000 * 60 * time),
             "nbf": Math.floor(Date.now() / 1000 - 5),
             sub: appId,
             context: {
