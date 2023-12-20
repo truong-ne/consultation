@@ -7,6 +7,18 @@ export class BookConsultation {
     @IsString()
     doctor_id: string
 
+    @ApiProperty({ example: '0w3ovqa4ZbY-nEcLTTOBR' })
+    @IsString()
+    symptoms: string
+
+    @ApiProperty({ example: '0w3ovqa4ZbY-nEcLTTOBR' })
+    @IsString()
+    medical_history: string
+
+    @ApiProperty({ example: [] })
+    @IsString()
+    patient_records: string[]
+
     @IsNotEmpty()
     @ApiProperty({ example: 'medical_id' })
     @IsString()

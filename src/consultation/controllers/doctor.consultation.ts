@@ -104,6 +104,13 @@ export class DoctorConsultation {
         return await this.consultationService.moneyChartByDoctorId(doctorId)
     }
 
+    @UseGuards(DoctorGuard)
+    @ApiBearerAuth()
+    @Get('consultation/:consultationId')
+    async consultationDetail(@Param('consultationId') consultationId: string, @Req() req) {
+        return await this.consultationService.consultationDetail(consultationId, req.user.id)
+    }
+
     @Post(':id/schedule')
     async getDoctorSchedule(
         @Param('id') doctor_id: string,

@@ -25,8 +25,17 @@ export class Consultation {
     @Column()
     price: number
 
+    @Column({ nullable: true })
+    symptoms: string
+
+    @Column({ name: 'medical_history', nullable: true })
+    medical_history: string
+
     @Column({ name: 'medical_record', nullable: true })
     medical_record: string
+
+    @Column("text", { name: 'patient_records', array: true, default: [] })
+    patient_records: string[]
 
     @Column({ name: 'jisti_token', nullable: true })
     jisti_token: string

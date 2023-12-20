@@ -103,7 +103,7 @@ export class DiscountService extends BaseService<Discount> {
         if (!discount)
             throw new NotFoundException('not_found_discount')
 
-        const data = await this.discountRepository.delete(discount)
+        const data = await this.discountRepository.remove(discount)
 
         return {
             message: "successfully"

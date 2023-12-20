@@ -47,16 +47,7 @@ export class ConsultationService extends BaseService<Consultation> {
         }
     }
 
-    async getConsultation(doctor_id: string) {
-        const doctor = await this.doctorRepository.findOne({
-            where: { id: doctor_id }
-        })
-
-        const consultations = await this.consultationRepository.find({
-            where: { doctor: doctor },
-            relations: ['doctor', 'user']
-        })
-
+    async dataConsultation(consultations: Consultation[]) {
         const data = {
             coming: [],
             finish: [],
@@ -78,12 +69,12 @@ export class ConsultationService extends BaseService<Consultation> {
         })
 
         if (rabbitmq.code !== 200) {
-            return rabbitmq.message
+            return rabbitmq
         }
 
         consultations.forEach(c => {
-            for (let i = 0; i < rabbitmq.data.length; i++)
-                if (c.medical_record === rabbitmq.data[i].id) {
+            for (let item of rabbitmq.data)
+                if (c.medical_record === item.id) {
                     const consultation = {
                         id: c.id,
                         doctor: {
@@ -91,7 +82,7 @@ export class ConsultationService extends BaseService<Consultation> {
                             full_name: c.doctor.full_name,
                             specialty: c.doctor.specialty
                         },
-                        medical: rabbitmq.data[i],
+                        medical: item,
                         date: c.date,
                         expected_time: c.expected_time,
                         price: c.price,
@@ -113,6 +104,15 @@ export class ConsultationService extends BaseService<Consultation> {
             message: "success",
             data: data
         }
+    }
+
+    async getConsultation(doctor_id: string) {
+        const consultations = await this.consultationRepository.find({
+            where: { doctor: { id: doctor_id } },
+            relations: ['doctor', 'user']
+        })
+
+        return await this.dataConsultation(consultations)
     }
 
     async bookConsultation(user_id: string, dto: BookConsultation, working_time: string) {
@@ -138,10 +138,26 @@ export class ConsultationService extends BaseService<Consultation> {
             where: { id: user_id }
         })
 
+        if(dto.patient_records.length > 0) {
+            const rabbitmq = await this.amqpConnection.request<any>({
+                exchange: 'healthline.user.information',
+                routingKey: 'patient',
+                payload: dto.patient_records,
+                timeout: 10000,
+            })
+    
+            if (rabbitmq.code !== 200) {
+                return rabbitmq
+            }
+        }
+
         const consultation = new Consultation()
         consultation.user = user
         consultation.doctor = doctor
+        consultation.symptoms = dto.symptoms
+        consultation.medical_history = dto.medical_history
         consultation.medical_record = dto.medical_record
+        consultation.patient_records = dto.patient_records
         var date = new Date(dto.date.replace(/(\d+[/])(\d+[/])/, '$2$1'))
         if (isNaN(date.valueOf()))
             throw new BadRequestException('wrong_syntax')
@@ -164,6 +180,7 @@ export class ConsultationService extends BaseService<Consultation> {
             user.account_balance -= consultation.price
         else throw new BadRequestException("you_have_not_enough_money")
         consultation.updated_at = this.VNTime()
+        doctor
 
         const data_jisti = {
             id: uuid(),
@@ -180,7 +197,7 @@ export class ConsultationService extends BaseService<Consultation> {
         try {
             await this.userRepository.save(user)
         } catch (error) {
-            await this.consultationRepository.delete(data)
+            await this.consultationRepository.remove(data)
             throw new BadRequestException("create_consultation_failed")
         }
         return {
@@ -228,62 +245,7 @@ export class ConsultationService extends BaseService<Consultation> {
             relations: ['doctor', 'user']
         })
 
-        const data = {
-            coming: [],
-            finish: [],
-            cancel: []
-        }
-
-        if (consultations.length === 0)
-            return {
-                code: 200,
-                message: "success",
-                data: data
-            }
-
-        const rabbitmq = await this.amqpConnection.request<any>({
-            exchange: 'healthline.user.information',
-            routingKey: 'medical',
-            payload: Array.from(new Set(consultations.map(c => c.medical_record))),
-            timeout: 10000,
-        })
-
-        if (rabbitmq.code !== 200) {
-            return rabbitmq.message
-        }
-
-        consultations.forEach(c => {
-            for (let i = 0; i < rabbitmq.data.length; i++)
-                if (c.medical_record === rabbitmq.data[i].id) {
-                    const consultation = {
-                        id: c.id,
-                        doctor: {
-                            avatar: c.doctor.avatar,
-                            full_name: c.doctor.full_name,
-                            specialty: c.doctor.specialty
-                        },
-                        medical: rabbitmq.data[i],
-                        date: c.date,
-                        expected_time: c.expected_time,
-                        price: c.price,
-                        status: c.status,
-                        jisti_token: c.jisti_token,
-                        updated_at: c.updated_at
-                    }
-                    if (c.status === 'pending' || c.status === 'confirmed')
-                        data.coming.push(consultation)
-                    else if (c.status === 'finished')
-                        data.finish.push(consultation)
-                    else data.cancel.push(consultation)
-                    break
-                }
-        })
-
-        return {
-            code: 200,
-            message: "success",
-            data: data
-        }
+        return await this.dataConsultation(consultations)
     }
 
     async refund(userId: string, money: number) {
@@ -553,17 +515,52 @@ export class ConsultationService extends BaseService<Consultation> {
         }
     }
 
-    async countUserByDoctorConsultation(doctor_id: string): Promise<any> {
-        const doctor = await this.doctorRepository.findOne({
-            where: { id: doctor_id }
+    async consultationDetail(consultationId: string, doctor_id: string) {
+        const consultation = await this.consultationRepository.findOne({ where: { id: consultationId, doctor: { id: doctor_id } }, relations: ['doctor', 'feedback'] })
+
+        var patient
+        if(consultation.patient_records.length !== 0) {
+            patient = await this.amqpConnection.request<any>({
+                exchange: 'healthline.user.information',
+                routingKey: 'patient',
+                payload: consultation.patient_records,
+                timeout: 10000,
+            })
+
+            if (patient.code !== 200) {
+                return patient
+            }
+        }
+
+        const medical = await this.amqpConnection.request<any>({
+            exchange: 'healthline.user.information',
+            routingKey: 'medical',
+            payload: [consultation.medical_record],
+            timeout: 10000,
         })
 
-        if (!doctor)
-            throw new NotFoundException('doctor_not_found')
+        if (medical.code !== 200) {
+            return medical
+        }
 
+        const { patient_records, medical_record, doctor, ...data } = consultation
+        return {
+            code: 200,
+            message: "success",
+            data: {
+                medical: medical.data[0],
+                ...data,
+                patient_records: patient ? patient.data : [],
+                feedback: consultation.feedback ? consultation.feedback.feedback : null,
+                rated: consultation.feedback ? consultation.feedback.rated : null
+            }
+        }
+    }
+
+    async countUserByDoctorConsultation(doctor_id: string): Promise<any> {
         const consultations = await this.consultationRepository.find({
-            where: { doctor: doctor, status: Status.finished },
-            relations: ['user']
+            where: { doctor: { id: doctor_id }, status: Status.finished },
+            relations: ['user', 'doctor']
         })
 
         const data = []
@@ -613,7 +610,7 @@ export class ConsultationService extends BaseService<Consultation> {
                 }
             },
             room: '*',
-        }, privateKey, { algorithm: 'RS256', header: { kid } })
+        }, JSON.parse(privateKey as string), { algorithm: 'RS256', header: { kid } })
         return jwt;
     }
 }
