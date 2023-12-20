@@ -1,5 +1,5 @@
 import { ApiProperty } from "@nestjs/swagger";
-import { IsDateString, IsEnum, IsNotEmpty, IsNumber, IsString, Max, Min } from "class-validator";
+import { IsArray, IsDateString, IsEnum, IsNotEmpty, IsNumber, IsString, Max, Min } from "class-validator";
 
 export class BookConsultation {
     @IsNotEmpty()
@@ -16,7 +16,7 @@ export class BookConsultation {
     medical_history: string
 
     @ApiProperty({ example: [] })
-    @IsString()
+    @IsArray()
     patient_records: string[]
 
     @IsNotEmpty()
