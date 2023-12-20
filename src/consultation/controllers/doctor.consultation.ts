@@ -23,12 +23,11 @@ export class DoctorConsultation {
     @UseGuards(DoctorGuard)
     @ApiOperation({ summary: 'Lấy tất cả cuộc hẹn của bác sĩ (admin + doctor)' })
     @ApiBearerAuth()
-    @Get(':doctor_id')
+    @Get()
     async getConsultation(
-        @Param('doctor_id') doctor_id: string,
         @Req() req
     ) {
-        return await this.consultationService.getConsultation(doctor_id)
+        return await this.consultationService.getConsultation(req.user.id)
     }
 
     @UseGuards(DoctorGuard)

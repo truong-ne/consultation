@@ -102,6 +102,8 @@ export class ConsultationService extends BaseService<Consultation> {
         return {
             code: 200,
             message: "success",
+            code: 200,
+            message: "success",
             data: data
         }
     }
