@@ -60,13 +60,22 @@ export class DoctorConsultation {
         }
     }
 
-    @UseGuards(DoctorGuard)
+    @UseGuards(AdminGuard)
     @ApiBearerAuth()
-    @Get('information/:doctor_id')
-    async constUserByDoctorConsultation(
+    @Get('information/admin/:doctor_id')
+    async constUserDoctorConsultationByAdmin(
         @Param('doctor_id') doctor_id: string,
     ) {
         return await this.consultationService.countUserByDoctorConsultation(doctor_id)
+    }
+
+    @UseGuards(DoctorGuard)
+    @ApiBearerAuth()
+    @Get('information/:doctor_id')
+    async constUserDoctorConsultationByDoctor(
+        @Req() req
+    ) {
+        return await this.consultationService.countUserByDoctorConsultation(req.user.id)
     }
 
     @UseGuards(AdminGuard)

@@ -2,7 +2,7 @@ import { Injectable, NotFoundException, ConflictException, UnauthorizedException
 import { InjectRepository } from "@nestjs/typeorm";
 import { BaseService } from "../../config/base.service";
 import { Doctor } from "../entities/doctor.entity";
-import { Between, Repository } from "typeorm";
+import { Between, In, Repository } from "typeorm";
 import { Consultation } from "../entities/consultation.entity";
 import { User } from "../entities/user.entity";
 import { Status } from "../../config/enum.constants";
@@ -15,6 +15,7 @@ import * as dotenv from 'dotenv'
 import { Discount } from "src/discount/entities/discount.entity";
 import { AmqpConnection } from "@golevelup/nestjs-rabbitmq";
 import { of } from "rxjs";
+import { Cron, CronExpression } from "@nestjs/schedule";
 dotenv.config()
 
 @Injectable()
@@ -27,6 +28,22 @@ export class ConsultationService extends BaseService<Consultation> {
         private readonly amqpConnection: AmqpConnection
     ) {
         super(consultationRepository)
+    }
+
+    @Cron(CronExpression.EVERY_30_SECONDS)
+    async scheduleCron() {
+        const consultations = await this.consultationRepository.find({ where: { status: In([Status.confirmed, Status.pending]) } })
+        for(let consultation of consultations) {
+            if(consultation.date.getDate() >= Date.now() && consultation.status === Status.confirmed) {
+                consultation.status = Status.finished
+                await this.consultationRepository.save(consultation)
+            }
+
+            if(consultation.date.getDate() >= Date.now() && consultation.status === Status.pending) {
+                consultation.status = Status.canceled
+                await this.consultationRepository.save(consultation)
+            }
+        }
     }
 
     async doctorSchedule(doctor_id: string, date: string, working_time: string) {
@@ -563,16 +580,33 @@ export class ConsultationService extends BaseService<Consultation> {
             relations: ['user', 'doctor']
         })
 
+        const medicals = await this.amqpConnection.request<any>({
+            exchange: 'healthline.user.information',
+            routingKey: 'medical',
+            payload: consultations.map(c => c.user.id),
+            timeout: 10000,
+        })
+
+        if (medicals.code !== 200) {
+            return medicals
+        }
+
         const data = []
         let quantity = 0
         for (const consultation of consultations) {
             quantity++;
-            const info = {
-                medical_id: consultation.medical_record,
-                phone: consultation.user.phone,
-                email: consultation.user.email,
-            }
-            data.push(info)
+            for(let medical of medicals.data)
+                if(consultation.user.id === medical.uid) {
+                    const info = {
+                        userId: medical.uid,
+                        full_name: medical.full_name,
+                        avatar: medical.avatar,
+                        phone: consultation.user.phone,
+                        email: consultation.user.email,
+                    }
+                    data.push(info)
+                    break
+                }
         }
 
         return {
