@@ -15,7 +15,6 @@ export class BookConsultation {
     @IsString()
     medical_history: string
 
-    @IsNotEmpty()
     @ApiProperty({ example: [] })
     @IsString()
     patient_records: string[]
