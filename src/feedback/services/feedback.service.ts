@@ -79,13 +79,9 @@ export class FeedbackService extends BaseService<Feedback> {
     }
 
     async ratedDoctor(doctor_id: string) {
-        const doctor = await this.doctorRepository.findOne({
-            where: { id: doctor_id }
-        })
-
         const consultations = await this.consultationRepository.find({
-            where: { doctor: doctor },
-            relations: ['feedback'],
+            where: { doctor: { id: doctor_id } },
+            relations: ['feedback', 'doctor'],
             select: ['feedback']
         })
 

@@ -69,7 +69,7 @@ export class ConsultationService extends BaseService<Consultation> {
         })
 
         if (rabbitmq.code !== 200) {
-            return rabbitmq.message
+            return rabbitmq
         }
 
         consultations.forEach(c => {
@@ -138,10 +138,24 @@ export class ConsultationService extends BaseService<Consultation> {
             where: { id: user_id }
         })
 
+        const rabbitmq = await this.amqpConnection.request<any>({
+            exchange: 'healthline.user.information',
+            routingKey: 'patient',
+            payload: dto.patient_records,
+            timeout: 10000,
+        })
+
+        if (rabbitmq.code !== 200) {
+            return rabbitmq
+        }
+
         const consultation = new Consultation()
         consultation.user = user
         consultation.doctor = doctor
+        consultation.symptoms = dto.symptoms
+        consultation.medical_history = dto.medical_history
         consultation.medical_record = dto.medical_record
+        consultation.patient_records = dto.patient_records
         var date = new Date(dto.date.replace(/(\d+[/])(\d+[/])/, '$2$1'))
         if (isNaN(date.valueOf()))
             throw new BadRequestException('wrong_syntax')
@@ -180,7 +194,7 @@ export class ConsultationService extends BaseService<Consultation> {
         try {
             await this.userRepository.save(user)
         } catch (error) {
-            await this.consultationRepository.delete(data)
+            await this.consultationRepository.remove(data)
             throw new BadRequestException("create_consultation_failed")
         }
         return {
@@ -498,17 +512,52 @@ export class ConsultationService extends BaseService<Consultation> {
         }
     }
 
-    async countUserByDoctorConsultation(doctor_id: string): Promise<any> {
-        const doctor = await this.doctorRepository.findOne({
-            where: { id: doctor_id }
+    async consultationDetail(consultationId: string, doctor_id: string) {
+        const consultation = await this.consultationRepository.findOne({ where: { id: consultationId, doctor: { id: doctor_id } }, relations: ['doctor', 'feedback'] })
+
+        var patient
+        if(consultation.patient_records.length !== 0) {
+            patient = await this.amqpConnection.request<any>({
+                exchange: 'healthline.user.information',
+                routingKey: 'patient',
+                payload: consultation.patient_records,
+                timeout: 10000,
+            })
+
+            if (patient.code !== 200) {
+                return patient
+            }
+        }
+
+        const medical = await this.amqpConnection.request<any>({
+            exchange: 'healthline.user.information',
+            routingKey: 'medical',
+            payload: [consultation.medical_record],
+            timeout: 10000,
         })
 
-        if (!doctor)
-            throw new NotFoundException('doctor_not_found')
+        if (medical.code !== 200) {
+            return medical
+        }
 
+        const { patient_records, medical_record, doctor, ...data } = consultation
+        return {
+            code: 200,
+            message: "success",
+            data: {
+                medical: medical.data[0],
+                ...data,
+                patient_records: patient ? patient.data : [],
+                feedback: consultation.feedback ? consultation.feedback.feedback : null,
+                rated: consultation.feedback ? consultation.feedback.rated : null
+            }
+        }
+    }
+
+    async countUserByDoctorConsultation(doctor_id: string): Promise<any> {
         const consultations = await this.consultationRepository.find({
-            where: { doctor: doctor, status: Status.finished },
-            relations: ['user']
+            where: { doctor: { id: doctor_id }, status: Status.finished },
+            relations: ['user', 'doctor']
         })
 
         const data = []
