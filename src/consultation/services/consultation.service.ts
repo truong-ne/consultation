@@ -558,7 +558,7 @@ export class ConsultationService extends BaseService<Consultation> {
                 }
             },
             room: '*',
-        }, privateKey, { algorithm: 'RS256', header: { kid } })
+        }, JSON.parse(privateKey as string), { algorithm: 'RS256', header: { kid } })
         return jwt;
     }
 }
