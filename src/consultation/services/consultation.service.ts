@@ -34,12 +34,12 @@ export class ConsultationService extends BaseService<Consultation> {
     async scheduleCron() {
         const consultations = await this.consultationRepository.find({ where: { status: In([Status.confirmed, Status.pending]) } })
         for(let consultation of consultations) {
-            if(consultation.date.getDate() >= Date.now() && consultation.status === Status.confirmed) {
+            if(consultation.date.getTime() >= Date.now() && consultation.status === Status.confirmed) {
                 consultation.status = Status.finished
                 await this.consultationRepository.save(consultation)
             }
 
-            if(consultation.date.getDate() >= Date.now() && consultation.status === Status.pending) {
+            if(consultation.date.getTime() >= Date.now() && consultation.status === Status.pending) {
                 consultation.status = Status.canceled
                 await this.consultationRepository.save(consultation)
             }
@@ -582,7 +582,7 @@ export class ConsultationService extends BaseService<Consultation> {
 
         const medicals = await this.amqpConnection.request<any>({
             exchange: 'healthline.user.information',
-            routingKey: 'medical',
+            routingKey: 'user',
             payload: consultations.map(c => c.user.id),
             timeout: 10000,
         })

@@ -71,7 +71,7 @@ export class DoctorConsultation {
 
     @UseGuards(DoctorGuard)
     @ApiBearerAuth()
-    @Get('information/:doctor_id')
+    @Get('information')
     async constUserDoctorConsultationByDoctor(
         @Req() req
     ) {
