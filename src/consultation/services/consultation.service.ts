@@ -602,7 +602,7 @@ export class ConsultationService extends BaseService<Consultation> {
         const data = []
         for (const medical of medicals.data) {
             for(let consultation of consultations)
-                if(consultation.user.id === medical.id) {
+                if(consultation.medical_record === medical.id) {
                     const info = {
                         ...medical,
                         phone: consultation.user.phone,
