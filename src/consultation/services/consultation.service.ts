@@ -590,8 +590,8 @@ export class ConsultationService extends BaseService<Consultation> {
 
         const medicals = await this.amqpConnection.request<any>({
             exchange: 'healthline.user.information',
-            routingKey: 'user',
-            payload: consultations.map(c => c.user.id),
+            routingKey: 'medical',
+            payload: Array.from(new Set(consultations.map(c => c.medical_record))),
             timeout: 10000,
         })
 
@@ -600,15 +600,11 @@ export class ConsultationService extends BaseService<Consultation> {
         }
 
         const data = []
-        let quantity = 0
-        for (const consultation of consultations) {
-            quantity++;
-            for(let medical of medicals.data)
-                if(consultation.user.id === medical.uid) {
+        for (const medical of medicals.data) {
+            for(let consultation of consultations)
+                if(consultation.user.id === medical.id) {
                     const info = {
-                        userId: medical.uid,
-                        full_name: medical.full_name,
-                        avatar: medical.avatar,
+                        ...medical,
                         phone: consultation.user.phone,
                         email: consultation.user.email,
                     }
@@ -620,7 +616,7 @@ export class ConsultationService extends BaseService<Consultation> {
         return {
             data: {
                 consultation: data,
-                quantity: quantity
+                quantity: consultations.length
             },
         }
     }
