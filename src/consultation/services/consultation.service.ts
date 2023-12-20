@@ -47,42 +47,72 @@ export class ConsultationService extends BaseService<Consultation> {
         }
     }
 
-    async getConsultation(doctor_id: string) {
-        const doctor = await this.doctorRepository.findOne({
-            where: { id: doctor_id }
-        })
-
+    async dataConsultation(consultations: Consultation[]) {
         const data = {
-            pending: [],
-            confirmed: [],
-            finished: [],
-            canceled: [],
-            denied: []
+            coming: [],
+            finish: [],
+            cancel: []
         }
 
-        const consultations = await this.consultationRepository.find({
-            where: { doctor: doctor },
-            relations: ['doctor']
+        if (consultations.length === 0)
+            return {
+                code: 200,
+                message: "success",
+                data: data
+            }
+
+        const rabbitmq = await this.amqpConnection.request<any>({
+            exchange: 'healthline.user.information',
+            routingKey: 'medical',
+            payload: Array.from(new Set(consultations.map(c => c.medical_record))),
+            timeout: 10000,
         })
 
-
-        for (const consultation of consultations) {
-            if (consultation.status === Status.pending)
-                data.pending.push(consultation)
-            else if (consultation.status === Status.confirmed)
-                data.confirmed.push(consultation)
-            else if (consultation.status === Status.finished)
-                data.finished.push(consultation)
-            else if (consultation.status === Status.canceled)
-                data.canceled.push(consultation)
-            else if (consultation.status === Status.denied)
-                data.denied.push(consultation)
-            else continue
+        if (rabbitmq.code !== 200) {
+            return rabbitmq.message
         }
+
+        consultations.forEach(c => {
+            for (let item of rabbitmq.data)
+                if (c.medical_record === item.id) {
+                    const consultation = {
+                        id: c.id,
+                        doctor: {
+                            avatar: c.doctor.avatar,
+                            full_name: c.doctor.full_name,
+                            specialty: c.doctor.specialty
+                        },
+                        medical: item,
+                        date: c.date,
+                        expected_time: c.expected_time,
+                        price: c.price,
+                        status: c.status,
+                        jisti_token: c.jisti_token,
+                        updated_at: c.updated_at
+                    }
+                    if (c.status === 'pending' || c.status === 'confirmed')
+                        data.coming.push(consultation)
+                    else if (c.status === 'finished')
+                        data.finish.push(consultation)
+                    else data.cancel.push(consultation)
+                    break
+                }
+        })
 
         return {
+            code: 200,
+            message: "success",
             data: data
         }
+    }
+
+    async getConsultation(doctor_id: string) {
+        const consultations = await this.consultationRepository.find({
+            where: { doctor: { id: doctor_id } },
+            relations: ['doctor', 'user']
+        })
+
+        return await this.dataConsultation(consultations)
     }
 
     async bookConsultation(user_id: string, dto: BookConsultation, working_time: string) {
@@ -198,62 +228,7 @@ export class ConsultationService extends BaseService<Consultation> {
             relations: ['doctor', 'user']
         })
 
-        const data = {
-            coming: [],
-            finish: [],
-            cancel: []
-        }
-
-        if (consultations.length === 0)
-            return {
-                code: 200,
-                message: "success",
-                data: data
-            }
-
-        const rabbitmq = await this.amqpConnection.request<any>({
-            exchange: 'healthline.user.information',
-            routingKey: 'medical',
-            payload: Array.from(new Set(consultations.map(c => c.medical_record))),
-            timeout: 10000,
-        })
-
-        if (rabbitmq.code !== 200) {
-            return rabbitmq.message
-        }
-
-        consultations.forEach(c => {
-            for (let i = 0; i < rabbitmq.data.length; i++)
-                if (c.medical_record === rabbitmq.data[i].id) {
-                    const consultation = {
-                        id: c.id,
-                        doctor: {
-                            avatar: c.doctor.avatar,
-                            full_name: c.doctor.full_name,
-                            specialty: c.doctor.specialty
-                        },
-                        medical: rabbitmq.data[i],
-                        date: c.date,
-                        expected_time: c.expected_time,
-                        price: c.price,
-                        status: c.status,
-                        jisti_token: c.jisti_token,
-                        updated_at: c.updated_at
-                    }
-                    if (c.status === 'pending' || c.status === 'confirmed')
-                        data.coming.push(consultation)
-                    else if (c.status === 'finished')
-                        data.finish.push(consultation)
-                    else data.cancel.push(consultation)
-                    break
-                }
-        })
-
-        return {
-            code: 200,
-            message: "success",
-            data: data
-        }
+        return await this.dataConsultation(consultations)
     }
 
     async refund(userId: string, money: number) {
