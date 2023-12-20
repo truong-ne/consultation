@@ -138,15 +138,17 @@ export class ConsultationService extends BaseService<Consultation> {
             where: { id: user_id }
         })
 
-        const rabbitmq = await this.amqpConnection.request<any>({
-            exchange: 'healthline.user.information',
-            routingKey: 'patient',
-            payload: dto.patient_records,
-            timeout: 10000,
-        })
-
-        if (rabbitmq.code !== 200) {
-            return rabbitmq
+        if(dto.patient_records.length > 0) {
+            const rabbitmq = await this.amqpConnection.request<any>({
+                exchange: 'healthline.user.information',
+                routingKey: 'patient',
+                payload: dto.patient_records,
+                timeout: 10000,
+            })
+    
+            if (rabbitmq.code !== 200) {
+                return rabbitmq
+            }
         }
 
         const consultation = new Consultation()
@@ -178,6 +180,7 @@ export class ConsultationService extends BaseService<Consultation> {
             user.account_balance -= consultation.price
         else throw new BadRequestException("you_have_not_enough_money")
         consultation.updated_at = this.VNTime()
+        doctor
 
         const data_jisti = {
             id: uuid(),
