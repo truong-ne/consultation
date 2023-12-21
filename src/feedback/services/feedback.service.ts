@@ -94,7 +94,8 @@ export class FeedbackService extends BaseService<Feedback> {
                 id: consultation.feedback.id,
                 user: consultation.feedback.user_id,
                 feedback: consultation.feedback.feedback,
-                rated: consultation.feedback.rated
+                rated: consultation.feedback.rated,
+                created_at: consultation.feedback.created_at
             })
             if (consultation.feedback.rated === 1)
                 rating[0]++
