@@ -652,23 +652,37 @@ export class ConsultationService extends BaseService<Consultation> {
         return jwt;
     }
 
-    // async doctorDashboard(doctor_id: string) {
-    //     const consultations = await this.consultationRepository.find({
-    //         where: {
-    //             doctor: { id: doctor_id },
-    //             status: Status.finished
-    //         }
-    //     })
+    async doctorDashboard(doctor_id: string) {
+        const consultations = await this.consultationRepository.find({
+            where: {
+                doctor: { id: doctor_id },
+                status: Status.finished
+            },
+            select: ['feedback']
+        })
 
-    //     let money = 0
-    //     const countConsul = await this.consultationRepository.count({
-    //         where: {
-    //             doctor: { id: doctor_id },
-    //             status: Status.finished
-    //         }
-    //     })
+        let money = 0
+        const countConsul = await this.consultationRepository.count({
+            where: {
+                doctor: { id: doctor_id },
+                status: Status.finished
+            },
+        })
 
-    //     for (const consultation of consultations)
-    //         money += consultation.price
-    // }
+        for (const consultation of consultations)
+            money += consultation.price
+
+        let badFeedback = 0
+        for (const consultation of consultations)
+            if (consultation.feedback.rated < 3)
+                badFeedback += 1
+
+        return {
+            data: {
+                money: money,
+                countConsul: countConsul,
+                badFeedback: badFeedback
+            }
+        }
+    }
 }

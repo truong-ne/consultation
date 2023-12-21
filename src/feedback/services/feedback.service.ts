@@ -118,7 +118,7 @@ export class FeedbackService extends BaseService<Feedback> {
 
         return {
             data: data,
-            // rating: rating
+            // message: rating[0] + rating[1]
         }
     }
 }
