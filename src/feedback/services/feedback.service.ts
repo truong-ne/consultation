@@ -110,7 +110,7 @@ export class FeedbackService extends BaseService<Feedback> {
 
         return {
             data: data,
-            rating: rating
+            // rating: rating
         }
     }
 }
