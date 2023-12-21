@@ -33,13 +33,13 @@ export class ConsultationService extends BaseService<Consultation> {
     @Cron(CronExpression.EVERY_30_SECONDS)
     async scheduleCron() {
         const consultations = await this.consultationRepository.find({ where: { status: In([Status.confirmed, Status.pending]) } })
-        for(let consultation of consultations) {
-            if(consultation.date.getTime() <= Date.now() && consultation.status === Status.confirmed) {
+        for (let consultation of consultations) {
+            if (consultation.date.getTime() <= Date.now() && consultation.status === Status.confirmed) {
                 consultation.status = Status.finished
                 await this.consultationRepository.save(consultation)
             }
 
-            if(consultation.date.getTime() <= Date.now() && consultation.status === Status.pending) {
+            if (consultation.date.getTime() <= Date.now() && consultation.status === Status.pending) {
                 consultation.status = Status.canceled
                 await this.consultationRepository.save(consultation)
             }
@@ -580,7 +580,7 @@ export class ConsultationService extends BaseService<Consultation> {
             relations: ['user', 'doctor']
         })
 
-        if(consultations.length === 0) 
+        if (consultations.length === 0)
             return {
                 data: {
                     consultation: [],
@@ -601,8 +601,8 @@ export class ConsultationService extends BaseService<Consultation> {
 
         const data = []
         for (const medical of medicals.data) {
-            for(let consultation of consultations)
-                if(consultation.medical_record === medical.id) {
+            for (let consultation of consultations)
+                if (consultation.medical_record === medical.id) {
                     const info = {
                         ...medical,
                         phone: consultation.user.phone,
@@ -651,4 +651,24 @@ export class ConsultationService extends BaseService<Consultation> {
         }, JSON.parse(privateKey as string), { algorithm: 'RS256', header: { kid } })
         return jwt;
     }
+
+    // async doctorDashboard(doctor_id: string) {
+    //     const consultations = await this.consultationRepository.find({
+    //         where: {
+    //             doctor: { id: doctor_id },
+    //             status: Status.finished
+    //         }
+    //     })
+
+    //     let money = 0
+    //     const countConsul = await this.consultationRepository.count({
+    //         where: {
+    //             doctor: { id: doctor_id },
+    //             status: Status.finished
+    //         }
+    //     })
+
+    //     for (const consultation of consultations)
+    //         money += consultation.price
+    // }
 }

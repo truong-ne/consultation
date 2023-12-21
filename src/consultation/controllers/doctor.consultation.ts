@@ -106,7 +106,7 @@ export class DoctorConsultation {
         return await this.consultationService.moneyChart()
     }
 
-    @UseGuards(AdminGuard)
+    @UseGuards(DoctorGuard)
     @ApiBearerAuth()
     @Get('consultation/money/chart/:doctorId')
     async moneyChartByDoctorId(@Param('doctorId') doctorId: string) {
