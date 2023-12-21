@@ -8,6 +8,7 @@ import { Consultation } from "../../consultation/entities/consultation.entity";
 import { Cron, CronExpression } from "@nestjs/schedule";
 import { UserFeedbackDto } from "../dto/feedback.dto";
 import { Doctor } from "../../consultation/entities/doctor.entity";
+import { AmqpConnection } from "@golevelup/nestjs-rabbitmq";
 
 
 @Injectable()
@@ -15,7 +16,8 @@ export class FeedbackService extends BaseService<Feedback> {
     constructor(
         @InjectRepository(Consultation) private readonly consultationRepository: Repository<Consultation>,
         @InjectRepository(Feedback) private readonly feedbackRepository: Repository<Feedback>,
-        @InjectRepository(Doctor) private readonly doctorRepository: Repository<Doctor>
+        @InjectRepository(Doctor) private readonly doctorRepository: Repository<Doctor>,
+        private readonly amqpConnection: AmqpConnection
     ) {
         super(feedbackRepository)
     }
@@ -92,7 +94,12 @@ export class FeedbackService extends BaseService<Feedback> {
                 continue
             data.push({
                 id: consultation.feedback.id,
-                user: consultation.feedback.user_id,
+                user: await this.amqpConnection.request<any>({
+                    exchange: 'healthline.user.information',
+                    routingKey: 'medical',
+                    payload: [consultation.medical_record],
+                    timeout: 10000,
+                }),
                 feedback: consultation.feedback.feedback,
                 rated: consultation.feedback.rated,
                 created_at: consultation.feedback.created_at
