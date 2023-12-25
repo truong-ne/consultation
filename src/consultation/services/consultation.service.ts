@@ -660,6 +660,14 @@ export class ConsultationService extends BaseService<Consultation> {
             },
             select: ['feedback']
         })
+        if (!consultations)
+            return {
+                data: {
+                    money: 0,
+                    countConsul: 0,
+                    badFeedback: 0
+                }
+            }
 
         let money = 0
         const countConsul = await this.consultationRepository.count({
