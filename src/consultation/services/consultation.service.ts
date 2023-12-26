@@ -659,8 +659,9 @@ export class ConsultationService extends BaseService<Consultation> {
                 doctor: { id: doctor_id },
                 status: Status.finished
             },
-            select: ['feedback']
+            relations: ['feedback']
         })
+
         if (!consultations)
             return {
                 data: {
@@ -682,9 +683,13 @@ export class ConsultationService extends BaseService<Consultation> {
             money += consultation.price
 
         let badFeedback = 0
-        for (const consultation of consultations)
-            if (consultation.feedback.rated < 3)
+        for (const consultation of consultations) {
+            if (consultation.feedback === null)
+                continue
+            else if (consultation.feedback.rated < 3)
                 badFeedback += 1
+        }
+
 
         return {
             data: {
