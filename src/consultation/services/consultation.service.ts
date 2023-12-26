@@ -259,7 +259,7 @@ export class ConsultationService extends BaseService<Consultation> {
     async userConsultation(userId: string) {
         const consultations = await this.consultationRepository.find({
             where: { user: { id: userId } },
-            relations: ['doctor', 'user']
+            relations: ['doctor', 'user', 'feedback']
         })
 
         return await this.dataConsultation(consultations)
