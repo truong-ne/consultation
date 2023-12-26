@@ -18,9 +18,9 @@ export class ConsultationConsumer {
     }
 
     @RabbitRPC({
-        exchange: 'healthline.doctor.information',
-        routingKey: 'information',
-        queue: 'carp',
+        exchange: 'healthline.user.information',
+        routingKey: 'check_medical',
+        queue: 'check_medical',
     })
     async checkMedicalInConsulation(id: string) {
         return await this.consultationService.checkMedicalInConsulation(id)
