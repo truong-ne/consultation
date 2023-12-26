@@ -16,4 +16,13 @@ export class ConsultationConsumer {
     async listDoctor(data: any) {
         return await this.consultationService.calculateAverageRatingPerDoctor()
     }
+
+    @RabbitRPC({
+        exchange: 'healthline.doctor.information',
+        routingKey: 'information',
+        queue: 'carp',
+    })
+    async checkMedicalInConsulation(id: string) {
+        return await this.consultationService.checkMedicalInConsulation(id)
+    }
 }
