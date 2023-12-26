@@ -32,11 +32,14 @@ export class ConsultationService extends BaseService<Consultation> {
 
     @Cron(CronExpression.EVERY_30_SECONDS)
     async scheduleCron() {
-        const consultations = await this.consultationRepository.find({ where: { status: In([Status.confirmed, Status.pending]) } })
+        const consultations = await this.consultationRepository.find({ where: { status: In([Status.confirmed, Status.pending]) }, relations: ['doctor'] })
         for (let consultation of consultations) {
             if (consultation.date.getTime() <= Date.now() && consultation.status === Status.confirmed) {
                 consultation.status = Status.finished
                 await this.consultationRepository.save(consultation)
+
+                consultation.doctor.account_balance += consultation.price
+                await this.doctorRepository.save(consultation.doctor)
             }
 
             if (consultation.date.getTime() <= Date.now() && consultation.status === Status.pending) {
@@ -698,5 +701,11 @@ export class ConsultationService extends BaseService<Consultation> {
                 badFeedback: badFeedback
             }
         }
+    }
+
+    async checkMedicalInConsulation(id: string) {
+        const medical = await this.consultationRepository.findBy({ status: In([Status.pending, Status.confirmed]), medical_record: id })
+    
+        return medical.length === 0
     }
 }
