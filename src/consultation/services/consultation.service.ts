@@ -105,7 +105,8 @@ export class ConsultationService extends BaseService<Consultation> {
                         price: c.price,
                         status: c.status,
                         jisti_token: c.jisti_token,
-                        updated_at: c.updated_at
+                        updated_at: c.updated_at,
+                        feedback: c.feedback
                     }
                     if (c.status === 'pending' || c.status === 'confirmed')
                         data.coming.push(consultation)
