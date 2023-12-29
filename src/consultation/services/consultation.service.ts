@@ -566,8 +566,6 @@ export class ConsultationService extends BaseService<Consultation> {
 
         const { patient_records, medical_record, doctor, ...data } = consultation
         return {
-            code: 200,
-            message: "success",
             data: {
                 medical: medical.data[0],
                 ...data,
@@ -705,7 +703,7 @@ export class ConsultationService extends BaseService<Consultation> {
 
     async checkMedicalInConsulation(id: string) {
         const medical = await this.consultationRepository.findBy({ status: In([Status.pending, Status.confirmed]), medical_record: id })
-    
+
         return medical.length === 0
     }
 }
