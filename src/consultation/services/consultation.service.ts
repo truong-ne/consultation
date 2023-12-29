@@ -566,6 +566,8 @@ export class ConsultationService extends BaseService<Consultation> {
 
         const { patient_records, medical_record, doctor, ...data } = consultation
         return {
+            code: 200,
+            message: "success",
             data: {
                 medical: medical.data[0],
                 ...data,

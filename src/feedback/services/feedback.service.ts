@@ -92,14 +92,16 @@ export class FeedbackService extends BaseService<Feedback> {
         for (const consultation of consultations) {
             if (!consultation.feedback)
                 continue
+
+            const user = await this.amqpConnection.request<any>({
+                exchange: 'healthline.user.information',
+                routingKey: 'medical',
+                payload: [consultation.medical_record],
+                timeout: 10000,
+            })
             data.push({
                 id: consultation.feedback.id,
-                user: await this.amqpConnection.request<any>({
-                    exchange: 'healthline.user.information',
-                    routingKey: 'medical',
-                    payload: [consultation.medical_record],
-                    timeout: 10000,
-                }),
+                user: user.data,
                 feedback: consultation.feedback.feedback,
                 rated: consultation.feedback.rated,
                 created_at: consultation.feedback.created_at
