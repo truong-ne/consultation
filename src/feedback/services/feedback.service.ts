@@ -102,14 +102,14 @@ export class FeedbackService extends BaseService<Feedback> {
             if (consultation.feedback.feedback === null)
                 data.push({
                     id: consultation.feedback.id,
-                    user: user.data,
+                    user: user.data[0],
                     // feedback: consultation.feedback.feedback,
                     rated: consultation.feedback.rated,
                     created_at: consultation.feedback.created_at
                 })
             else data.push({
                 id: consultation.feedback.id,
-                user: user.data,
+                user: user.data[0],
                 feedback: consultation.feedback.feedback,
                 rated: consultation.feedback.rated,
                 created_at: consultation.feedback.created_at
