@@ -10,7 +10,6 @@ import { AmqpConnection } from "@golevelup/nestjs-rabbitmq";
 @ApiTags('USER CONSULTATION')
 @Controller()
 export class UserConsultation {
-
     constructor(
         private readonly consultationService: ConsultationService,
         @Inject(CACHE_MANAGER) private cacheManager: Cache,

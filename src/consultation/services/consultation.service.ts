@@ -211,7 +211,7 @@ export class ConsultationService extends BaseService<Consultation> {
             appId: "vpaas-magic-cookie-fd0744894f194f3ea748884f83cec195",
             kid: "vpaas-magic-cookie-fd0744894f194f3ea748884f83cec195/96e059"
         }
-        const jisti_token = await this.generate(process.env.PRIVATE_CONSULTATION, data_jisti, bookingDate.length * 20)
+        const jisti_token = this.generate(process.env.PRIVATE_CONSULTATION, data_jisti, bookingDate.length * 20)
         consultation.jisti_token = jisti_token
         const data = await this.consultationRepository.save(consultation)
 
