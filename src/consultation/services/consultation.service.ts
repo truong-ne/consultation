@@ -625,14 +625,17 @@ export class ConsultationService extends BaseService<Consultation> {
         }
     }
 
-    generate(privateKey, { id, name, email, avatar, appId, kid }, time) {
+    generate(privateKey, { id, name, email, avatar, appId, kid }, time = null) {
         const now = new Date()
         const jwt = jsonwebtoken.sign({
             aud: 'jitsi',
             iss: 'chat',
-            "iat": Math.floor(Date.now() / 1000),
-            "exp": Math.floor(Date.now() / 1000 + 1000 * 60 * time),
-            "nbf": Math.floor(Date.now() / 1000 - 5),
+            // "iat": Math.floor(Date.now() / 1000),
+            // "exp": Math.floor(Date.now() / 1000 + 1000 * 60 * time),
+            // "nbf": Math.floor(Date.now() / 1000 - 5),
+            "iat": 1703879943,
+            "exp": 1803887143,
+            "nbf": 1703879938,
             sub: appId,
             context: {
                 features: {
@@ -652,7 +655,7 @@ export class ConsultationService extends BaseService<Consultation> {
                 }
             },
             room: '*',
-        }, JSON.parse(privateKey as string), { algorithm: 'RS256', header: { kid } })
+        }, privateKey, { algorithm: 'RS256', header: { kid } })
         return jwt;
     }
 
