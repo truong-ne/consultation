@@ -117,4 +117,12 @@ export class DiscountService extends BaseService<Discount> {
 
         return { data: listDiscount }
     }
+
+    async getDiscountByCode(code: string): Promise<any> {
+        const listDiscount = await this.discountRepository.findOneBy({ code: code })
+        if (!listDiscount)
+            throw new NotFoundException('not_found_discount')
+
+        return { data: listDiscount }
+    }
 }

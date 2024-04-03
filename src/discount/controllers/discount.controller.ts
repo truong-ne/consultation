@@ -16,15 +16,13 @@ export class DiscountController {
         @Inject(CACHE_MANAGER) private cacheManager: Cache,
     ) { }
 
-    @UseGuards(AdminGuard)
     @ApiOperation({ summary: 'Admin xóa discount' })
     @ApiBearerAuth()
-    @Get()
-    async getDiscount() {
-        return await this.discountService.getDiscount()
+    @Get("/:code")
+    async getDiscount(@Param('code') code: string) {
+        return await this.discountService.getDiscountByCode(code)
     }
 
-    @UseGuards(AdminGuard)
     @ApiOperation({ summary: 'Admin tạo discount' })
     @ApiBearerAuth()
     @Post()
