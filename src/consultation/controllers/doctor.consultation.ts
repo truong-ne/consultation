@@ -158,28 +158,28 @@ export class DoctorConsultation {
     //
     @UseGuards(DoctorGuard)
     @ApiBearerAuth()
-    @Get('consultation/statistic-table')
+    @Get('/statistic-table')
     async statisticTable(@Req() req) {
         return await this.consultationService.statisticTable(req.user.id)
     }
 
     @UseGuards(DoctorGuard)
     @ApiBearerAuth()
-    @Get('consultation/money-chart/:year')
+    @Get('/money-chart/:year')
     async moneyChartByDoctorId(@Param('year') year: number, @Req() req) {
         return await this.consultationService.moneyChartByDoctorId(req.user.id, year)
     }
 
     @UseGuards(DoctorGuard)
     @ApiBearerAuth()
-    @Get('consultation/familiar-customers')
+    @Get('/familiar-customers')
     async familiarCustomers(@Req() req) {
         return await this.consultationService.familiarCustomers(req.user.id)
     }
 
     @UseGuards(DoctorGuard)
     @ApiBearerAuth()
-    @Get('consultation/new-customers')
+    @Get('/new-customers')
     async newCustomers(@Req() req) {
         return await this.consultationService.newCustomers(req.user.id)
     }
