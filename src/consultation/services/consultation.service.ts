@@ -767,12 +767,19 @@ export class ConsultationService extends BaseService<Consultation> {
             (a, b) => countByFamiliar[b] - countByFamiliar[a]
         );
         
-        const data = sortedFamiliar.slice(0, 10);
+        const ids = sortedFamiliar.slice(0, 10);
+
+        const rabbitmq = await this.amqpConnection.request<any>({
+            exchange: 'healthline.user.information',
+            routingKey: 'user',
+            payload: ids,
+            timeout: 10000,
+        })
 
         return {
             code: 200,
             message: "success",
-            data: data
+            data: rabbitmq.data
         }
     }
 
@@ -789,12 +796,19 @@ export class ConsultationService extends BaseService<Consultation> {
             (a, b) => countByNew[b] - countByNew[a]
         );
         
-        const data = sortedNew.slice(0, 10);
+        const ids = sortedNew.slice(0, 10);
+
+        const rabbitmq = await this.amqpConnection.request<any>({
+            exchange: 'healthline.user.information',
+            routingKey: 'user',
+            payload: ids,
+            timeout: 10000,
+        })
 
         return {
             code: 200,
             message: "success",
-            data: data
+            data: rabbitmq.data
         }
     }
 }
