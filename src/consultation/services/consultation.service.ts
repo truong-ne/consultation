@@ -466,46 +466,6 @@ export class ConsultationService extends BaseService<Consultation> {
         };
     }
 
-    async moneyChartByDoctorId(id: string) {
-        const currentYear = this.VNTime().getUTCFullYear();
-
-        const moneyByMonth = [];
-        for (let month = 0; month < 12; month++) {
-            const startOfMonth = new Date(currentYear, month, 1); // Ngày bắt đầu (1/1/2023)
-            const endOfMonth = new Date(currentYear, month + 1, 0); // Ngày kết thúc (9/12/2023)
-
-            let moneyThisMonth = await this.consultationRepository.sum('price', {
-                status: Status.finished,
-                date: Between(startOfMonth, endOfMonth),
-                doctor: { id: id }
-            });
-
-            moneyThisMonth += await this.consultationRepository.sum('price', {
-                status: Status.confirmed,
-                date: Between(startOfMonth, endOfMonth),
-                doctor: { id: id }
-            });
-
-            if (moneyThisMonth !== null) {
-                moneyByMonth.push({
-                    month: month + 1,
-                    totalMoneyThisMonth: moneyThisMonth
-                });
-            } else {
-                moneyByMonth.push({
-                    month: month + 1,
-                    totalMoneyThisMonth: 0
-                });
-            }
-        }
-
-        return {
-            data: {
-                moneyByMonth: moneyByMonth
-            }
-        };
-    }
-
     async consultationChart() {
         const finish = await this.consultationRepository.count({
             where: { status: Status.finished }
@@ -711,5 +671,130 @@ export class ConsultationService extends BaseService<Consultation> {
         const medical = await this.consultationRepository.findBy({ status: In([Status.pending, Status.confirmed]), medical_record: id })
 
         return medical.length === 0
+    }
+
+    //    
+    //  Statistics for each doctor
+    //  
+    async statisticTable(doctorId: string): Promise<any> {
+        const consultations = await this.consultationRepository.find({ where: { doctor: { id: doctorId } }, relations: ['doctor', 'discount_code'] })
+
+        var sales = 0
+        var discount = 0
+        for (let c of consultations) {
+            var times = (c.expected_time.split("-").length) * 30
+            sales += times * c.doctor.fee_per_minutes
+            if (c.discount_code !== null) {
+                if (c.discount_code.type === "vnd") {
+                    discount += c.discount_code.value
+                } else discount += times * c.doctor.fee_per_minutes / 100 * c.discount_code.value
+            }
+        }
+
+        const data = {
+            "type_of_service": "Khám Bệnh Trực Tuyến",
+            "quantity": consultations.length,
+            "pending": consultations.filter((item) => { return item.status === "pending"; }),
+            "confirmed": consultations.filter((item) => { return item.status === "confirmed"; }),
+            "sales": sales,
+            "finished": consultations.filter((item) => { return item.status === "finished"; }),
+            "discount": discount,
+            "denied": consultations.filter((item) => { return item.status === "denied"; }),
+            "canceled": consultations.filter((item) => { return item.status === "canceled"; }),
+            "revenue": sales - discount,
+        }
+
+        return {
+            code: 200,
+            message: "success",
+            data: data
+        }
+    }
+
+    async moneyChartByDoctorId(doctorId: string, year: number) {
+        const moneyByMonth = [];
+        for (let month = 0; month < 12; month++) {
+            const startOfMonth = new Date(year, month, 1);
+            const endOfMonth = new Date(year, month + 1, 0);
+            let moneyThisMonth = await this.consultationRepository.sum('price', {
+                status: Status.finished,
+                date: Between(startOfMonth, endOfMonth),
+                doctor: { id: doctorId }
+            });
+
+            moneyThisMonth += await this.consultationRepository.sum('price', {
+                status: Status.confirmed,
+                date: Between(startOfMonth, endOfMonth),
+                doctor: { id: doctorId }
+            });
+
+            if (moneyThisMonth !== null) {
+                moneyByMonth.push({
+                    month: month + 1,
+                    totalMoneyThisMonth: moneyThisMonth
+                });
+            } else {
+                moneyByMonth.push({
+                    month: month + 1,
+                    totalMoneyThisMonth: 0
+                });
+            }
+        }
+
+        return {
+            code: 200,
+            message: "success",
+            data: {
+                moneyByMonth: moneyByMonth
+            }
+        };
+    }
+
+    async familiarCustomers(doctorId: string): Promise<any> {
+        const consultations = await this.consultationRepository.find({ where: { doctor: { id: doctorId }, status: Status.finished }, relations: ['doctor', "user"] })
+
+        const countByFamiliar = {};
+
+        for (let c of consultations) {
+            if (countByFamiliar[c.user.id]) {
+                countByFamiliar[c.user.id] += 1;
+            } else {
+                countByFamiliar[c.user.id] = 1;
+            }
+        }
+
+        const sortedFamiliar = Object.keys(countByFamiliar).sort(
+            (a, b) => countByFamiliar[b] - countByFamiliar[a]
+        );
+        
+        const data = sortedFamiliar.slice(0, 10);
+
+        return {
+            code: 200,
+            message: "success",
+            data: data
+        }
+    }
+
+    async newCustomers(doctorId: string): Promise<any> {
+        const consultations = await this.consultationRepository.find({ where: { doctor: { id: doctorId }, status: Status.finished }, relations: ['doctor', "user"] })
+
+        const countByNew = {};
+
+        for (let c of consultations) {
+            countByNew[c.user.id] = c.date;
+        }
+
+        const sortedNew = Object.keys(countByNew).sort(
+            (a, b) => countByNew[b] - countByNew[a]
+        );
+        
+        const data = sortedNew.slice(0, 10);
+
+        return {
+            code: 200,
+            message: "success",
+            data: data
+        }
     }
 }
