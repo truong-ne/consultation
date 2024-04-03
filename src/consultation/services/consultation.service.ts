@@ -694,13 +694,13 @@ export class ConsultationService extends BaseService<Consultation> {
         const data = {
             "type_of_service": "Khám Bệnh Trực Tuyến",
             "quantity": consultations.length,
-            "pending": consultations.filter((item) => { return item.status === "pending"; }),
-            "confirmed": consultations.filter((item) => { return item.status === "confirmed"; }),
+            "pending": consultations.filter((item) => { return item.status === "pending"; }).length,
+            "confirmed": consultations.filter((item) => { return item.status === "confirmed"; }).length,
             "sales": sales,
-            "finished": consultations.filter((item) => { return item.status === "finished"; }),
+            "finished": consultations.filter((item) => { return item.status === "finished"; }).length,
             "discount": discount,
-            "denied": consultations.filter((item) => { return item.status === "denied"; }),
-            "canceled": consultations.filter((item) => { return item.status === "canceled"; }),
+            "denied": consultations.filter((item) => { return item.status === "denied"; }).length,
+            "canceled": consultations.filter((item) => { return item.status === "canceled"; }).length,
             "revenue": sales - discount,
         }
 
