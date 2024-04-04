@@ -9,6 +9,7 @@ import { Cron, CronExpression } from "@nestjs/schedule";
 import { UserFeedbackDto } from "../dto/feedback.dto";
 import { Doctor } from "../../consultation/entities/doctor.entity";
 import { AmqpConnection } from "@golevelup/nestjs-rabbitmq";
+import { User } from "../../consultation/entities/user.entity";
 
 
 @Injectable()
@@ -17,6 +18,7 @@ export class FeedbackService extends BaseService<Feedback> {
         @InjectRepository(Consultation) private readonly consultationRepository: Repository<Consultation>,
         @InjectRepository(Feedback) private readonly feedbackRepository: Repository<Feedback>,
         @InjectRepository(Doctor) private readonly doctorRepository: Repository<Doctor>,
+        @InjectRepository(User) private readonly userRepository: Repository<User>,
         private readonly amqpConnection: AmqpConnection
     ) {
         super(feedbackRepository)
@@ -63,6 +65,11 @@ export class FeedbackService extends BaseService<Feedback> {
         feedback.feedback = dto.feedback
 
         await this.feedbackRepository.save(feedback)
+
+        const user = await this.userRepository.findOneBy({ id: feedback.user_id })
+        user.point += 100
+
+        await this.userRepository.save(user)
 
         return { message: 'feedback_successfully' }
     }
