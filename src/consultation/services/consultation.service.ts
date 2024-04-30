@@ -673,19 +673,23 @@ export class ConsultationService extends BaseService<Consultation> {
         return medical.length === 0
     }
 
-    async consultationInformation(id: string) {
-        const consultation = await this.consultationRepository.findOne({ where: {} })
+    async consultationInformation(ids: string[]) {
+        const consultation = await this.consultationRepository.find({ where: { id: In(ids)} })
 
-        if(!consultation) 
+        if(consultation.length < ids.length) 
             return {
                 code: 400,
                 message: 'Not Found Consultation'
             }
-
-        return {
-            date: consultation.date,
-            expected_time: consultation.expected_time
-        }
+        
+        const data = []
+        consultation.forEach(c => {
+            data.push({
+                date: c.date,
+                expected_time: c.expected_time
+            })
+        })
+        return data
     }
 
     //    

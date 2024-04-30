@@ -31,7 +31,7 @@ export class ConsultationConsumer {
         routingKey: 'consultation',
         queue: 'consultation',
     })
-    async consultationInformation(id: string) {
-        return await this.consultationService.consultationInformation(id)
+    async consultationInformation(ids: string[]) {
+        return await this.consultationService.consultationInformation(ids)
     }
 }
