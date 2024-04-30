@@ -673,6 +673,21 @@ export class ConsultationService extends BaseService<Consultation> {
         return medical.length === 0
     }
 
+    async consultationInformation(id: string) {
+        const consultation = await this.consultationRepository.findOne({ where: {} })
+
+        if(!consultation) 
+            return {
+                code: 400,
+                message: 'Not Found Consultation'
+            }
+
+        return {
+            date: consultation.date,
+            expected_time: consultation.expected_time
+        }
+    }
+
     //    
     //  Statistics for each doctor
     //  
