@@ -27,7 +27,7 @@ export class ConsultationConsumer {
     }
 
     @RabbitRPC({
-        exchange: 'healthline.consultation.information',
+        exchange: 'healthline.user.information',
         routingKey: 'consultation',
         queue: 'consultation',
     })
