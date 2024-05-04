@@ -100,7 +100,6 @@ export class ConsultationService extends BaseService<Consultation> {
                         doctor: {
                             avatar: c.doctor.avatar,
                             full_name: c.doctor.full_name,
-                            specialty: c.doctor.specialty
                         },
                         medical: item,
                         date: c.date,
