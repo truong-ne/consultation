@@ -60,8 +60,8 @@ export class Consultation {
     @JoinColumn({ name: 'discount' })
     discount_code: Discount
 
-    @OneToMany(() => Prescription, p => p.consultation, { onDelete: 'NO ACTION' })
-    prescription: Prescription[]
+    @OneToOne(() => Prescription, p => p.consultation, { onDelete: 'NO ACTION' })
+    prescription: Prescription
 
     @Column({ type: 'timestamp', name: 'update_at', default: () => 'CURRENT_TIMESTAMP', onUpdate: 'CURRENT_TIMESTAMP' })
     updated_at: Date;

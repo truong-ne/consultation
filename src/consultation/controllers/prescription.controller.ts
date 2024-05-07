@@ -22,19 +22,7 @@ export class PrescriptionController {
 
     @ApiOperation({ summary: 'Thêm đơn thuốc' })
     @Post('/:consultation_id')
-    async addPrescription(@Param('consultation_id') consultation_id: string, @Body() dto: PrescriptionDto[]) {
+    async addPrescription(@Param('consultation_id') consultation_id: string, @Body() dto: PrescriptionDto) {
         return await this.prescriptionService.addPrescription(consultation_id, dto)
-    }
-
-    @ApiOperation({ summary: 'Chỉnh sửa đơn thuốc' })
-    @Patch('/:prescription_id')
-    async updatePrescription(@Param('prescription_id') prescription_id: string, @Body() dto: PrescriptionDto) {
-        return await this.prescriptionService.updatePrescription(prescription_id, dto)
-    }
-
-    @ApiOperation({ summary: 'Xóa đơn thuốc' })
-    @Delete('/:prescription_id')
-    async removePrescription(@Param('prescription_id') prescription_id: string) {
-        return await this.prescriptionService.removePrescription(prescription_id)
     }
 }

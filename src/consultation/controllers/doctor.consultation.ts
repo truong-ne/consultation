@@ -87,23 +87,9 @@ export class DoctorConsultation {
 
     @UseGuards(AdminGuard)
     @ApiBearerAuth()
-    @Get('consultation/chart')
-    async consultationChart() {
-        return await this.consultationService.consultationChart()
-    }
-
-    @UseGuards(AdminGuard)
-    @ApiBearerAuth()
     @Get('consultation/money')
     async moneyDashboard() {
         return await this.consultationService.moneyDashboard()
-    }
-
-    @UseGuards(AdminGuard)
-    @ApiBearerAuth()
-    @Get('consultation/money/chart')
-    async moneyChart() {
-        return await this.consultationService.moneyChart()
     }
 
     @UseGuards(DoctorGuard)

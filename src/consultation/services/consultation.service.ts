@@ -427,75 +427,6 @@ export class ConsultationService extends BaseService<Consultation> {
         }
     }
 
-    async moneyChart() {
-        const currentYear = this.VNTime().getUTCFullYear();
-
-        const moneyByMonth = [];
-        for (let month = 0; month < 12; month++) {
-            const startOfMonth = new Date(currentYear, month, 1); // Ngày bắt đầu (1/1/2023)
-            const endOfMonth = new Date(currentYear, month + 1, 0); // Ngày kết thúc (9/12/2023)
-
-            let moneyThisMonth = await this.consultationRepository.sum('price', {
-                status: Status.finished,
-                date: Between(startOfMonth, endOfMonth)
-            });
-
-            moneyThisMonth += await this.consultationRepository.sum('price', {
-                status: Status.confirmed,
-                date: Between(startOfMonth, endOfMonth)
-            });
-
-            if (moneyThisMonth !== null) {
-                moneyByMonth.push({
-                    month: month + 1,
-                    totalMoneyThisMonth: moneyThisMonth
-                });
-            } else {
-                moneyByMonth.push({
-                    month: month + 1,
-                    totalMoneyThisMonth: 0
-                });
-            }
-        }
-
-        return {
-            data: {
-                moneyByMonth: moneyByMonth
-            }
-        };
-    }
-
-    async consultationChart() {
-        const finish = await this.consultationRepository.count({
-            where: { status: Status.finished }
-        })
-
-        const confirm = await this.consultationRepository.count({
-            where: { status: Status.confirmed }
-        })
-
-        const pending = await this.consultationRepository.count({
-            where: { status: Status.pending }
-        })
-
-        const cancel = await this.consultationRepository.count({
-            where: { status: Status.canceled }
-        })
-
-        const denied = await this.consultationRepository.count({
-            where: { status: Status.denied }
-        })
-
-        return {
-            data: {
-                finish: finish,
-                confirm: confirm,
-                pending: pending,
-                cancel: cancel + denied
-            }
-        }
-    }
-
     async consultationDetail(consultationId: string, doctor_id: string) {
         const consultation = await this.consultationRepository.findOne({ where: { id: consultationId, doctor: { id: doctor_id } }, relations: ['doctor', 'feedback'] })
 
@@ -828,5 +759,116 @@ export class ConsultationService extends BaseService<Consultation> {
             message: "success",
             data: rabbitmq.data
         }
+    }
+
+    //    
+    //  Statistics for each admin
+    //  
+    async consultationChart(month: number, year: number) {
+        const startOfMonth = new Date(year, month, 1); // Ngày bắt đầu (1/1/2023)
+        const endOfMonth = new Date(year, month + 1, 0); // Ngày kết thúc (9/12/2023)
+
+        let moneyThisMonth = await this.consultationRepository.sum('price', {
+            status: Status.finished,
+            date: Between(startOfMonth, endOfMonth)
+        });
+        const finish = await this.consultationRepository.count({
+            where: { 
+                status: Status.finished,
+                date: Between(startOfMonth, endOfMonth)
+            }
+        })
+
+        const confirm = await this.consultationRepository.count({
+            where: { 
+                status: Status.confirmed,
+                date: Between(startOfMonth, endOfMonth)
+            }
+        })
+
+        const pending = await this.consultationRepository.count({
+            where: { 
+                status: Status.pending,
+                date: Between(startOfMonth, endOfMonth)
+            }
+        })
+
+        const cancel = await this.consultationRepository.count({
+            where: { 
+                status: Status.canceled,
+                date: Between(startOfMonth, endOfMonth)
+            }
+        })
+
+        const denied = await this.consultationRepository.count({
+            where: { 
+                status: Status.denied,
+                date: Between(startOfMonth, endOfMonth)
+            }
+        })
+
+        return {
+            data: {
+                finish: finish,
+                confirm: confirm,
+                pending: pending,
+                cancel: cancel + denied
+            }
+        }
+    }
+
+    async moneyChart(year: number) {
+        const moneyByMonth = [];
+        const revenueByMonth = [];
+        const doctorSalaryByMonth = []
+        for (let month = 0; month < 12; month++) {
+            const startOfMonth = new Date(year, month, 1); // Ngày bắt đầu (1/1/2023)
+            const endOfMonth = new Date(year, month + 1, 0); // Ngày kết thúc (9/12/2023)
+
+            let consultation = await this.consultationRepository.find({ where: [
+                {
+                    status: Status.finished,
+                    date: Between(startOfMonth, endOfMonth)
+                },
+                {
+                    status: Status.confirmed,
+                    date: Between(startOfMonth, endOfMonth)
+                }
+            ], relations: ['discount_code']});
+
+            var originPrice = 0
+            var revenue = 0
+            consultation.forEach(c => {
+                if(c.discount_code)
+                    if (c.discount_code.type === "vnd") 
+                        originPrice += c.price + c.discount_code.value
+                    else originPrice += c.price / (100 - c.discount_code.value) * 100
+
+                revenue += c.price
+            })
+
+            moneyByMonth.push({
+                month: month + 1,
+                moneyByMonth: originPrice
+            });
+            revenueByMonth.push({
+                month: month + 1,
+                revenueByMonth: revenue
+            });
+            doctorSalaryByMonth.push({
+                month: month + 1,
+                doctorSalaryByMonth: revenue / 60 * 100
+            });
+        }
+
+        return {
+            code: 200,
+            message: 'success',
+            data: {
+                moneyByMonth: moneyByMonth,
+                revenueByMonth: revenueByMonth,
+                doctorSalaryByMonth: doctorSalaryByMonth
+            }
+        };
     }
 }

@@ -1,29 +1,36 @@
 import { ApiProperty } from "@nestjs/swagger";
 import { IsArray, IsDateString, IsEnum, IsNotEmpty, IsNumber, IsString, Matches, Max, Min } from "class-validator";
+import { DrugDto } from "./drug.dto";
 
 export class PrescriptionDto {
     @IsNotEmpty()
-    @ApiProperty({ example: 'paracetamol' })
+    @ApiProperty({ example: 'pham nhat minh' })
     @IsString()
-    name: string
+    patientName: string
 
     @IsNotEmpty()
-    @ApiProperty({ example: 'Vien nen' })
+    @ApiProperty({ example: 'hcm' })
     @IsString()
-    type: string
+    patientAddress: string
 
     @IsNotEmpty()
-    @ApiProperty({ example: 'uong sau khi an' })
+    @ApiProperty({ example: 'nam' })
+    @IsString()
+    gender: string
+
+    @IsNotEmpty()
+    @ApiProperty({ example: 'tran huynh tan phat' })
+    @IsString()
+    doctorName: string
+
+    @IsNotEmpty()
+    @ApiProperty({ example: 'bi cảm' })
+    @IsString()
+    diagnosis: string
+
+    @ApiProperty({ example: 'bi cảm' })
     @IsString()
     note: string
 
-    @IsNotEmpty()
-    @ApiProperty({ example: 20 })
-    @IsString()
-    quantity: string
-
-    @IsNotEmpty()
-    @ApiProperty({ example: 'vien' })
-    @IsString()
-    unit: string
+    drugs: DrugDto[]
 }
