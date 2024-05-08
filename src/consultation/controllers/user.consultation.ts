@@ -53,6 +53,17 @@ export class UserConsultation {
     }
 
     @UseGuards(UserGuard)
+    @ApiOperation({ summary: 'Khách hàng hủy cuộc hẹn khi cuộc hẹn đang trong trạng thái confirm' })
+    @ApiBearerAuth()
+    @Delete('/confirm/:consultation_id')
+    async cancelConsultationConfirm(
+        @Param('consultation_id') consultation_id: string,
+        @Req() req
+    ) {
+        return await this.consultationService.cancelConsultationConfirm(req.user.id, consultation_id)
+    }
+
+    @UseGuards(UserGuard)
     @ApiOperation({ summary: 'Tổng hợp các cuộc hẹn của khách hàng' })
     @ApiBearerAuth()
     @Get('user')

@@ -260,6 +260,34 @@ export class ConsultationService extends BaseService<Consultation> {
         }
     }
 
+    async cancelConsultationConfirm(user_id: string, consultation_id: string) {
+        const consultation = await this.consultationRepository.findOne({
+            where: { id: consultation_id },
+            relations: ['user', 'doctor']
+        })
+
+        if (!consultation) throw new NotFoundException('consultation_not_found')
+
+        if (consultation.user.id !== user_id)
+            throw new UnauthorizedException('unauthorized')
+
+        if (consultation.status !== Status.confirmed)
+            throw new BadRequestException('can_not_cancel_because_status_is_not_confirm')
+
+        consultation.status = Status.canceled
+        await this.consultationRepository.save(consultation)
+
+        await this.refund(consultation.user.id, consultation.price / 100 * 70)
+
+        consultation.doctor.account_balance +=  consultation.price / 100 * 30
+        await this.doctorRepository.save(consultation.doctor)
+
+        return {
+            code: 200,
+            message: 'success'
+        }
+    }
+
     async userConsultation(userId: string) {
         const consultations = await this.consultationRepository.find({
             where: { user: { id: userId } },
