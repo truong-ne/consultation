@@ -41,6 +41,7 @@ export class PrescriptionService extends BaseService<Prescription> {
             var drug = new Drug()
             drug.name = p.name
             drug.note = p.note
+            drug.code = p.code
             drug.quantity = p.quantity
             drug.type = p.type
             drug.prescription = prescription
