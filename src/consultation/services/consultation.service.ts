@@ -374,7 +374,7 @@ export class ConsultationService extends BaseService<Consultation> {
 
             averageRatingsPerDoctor.push({
                 doctor_id: doctorId,
-                averageRating: averageRating.toFixed(1),
+                averageRating: parseFloat(averageRating.toFixed(1)),
                 quantity: ratings.quantity
             });
         });
