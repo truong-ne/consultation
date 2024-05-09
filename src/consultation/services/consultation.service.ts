@@ -796,10 +796,6 @@ export class ConsultationService extends BaseService<Consultation> {
         const startOfMonth = new Date(year, month, 1); // Ngày bắt đầu (1/1/2023)
         const endOfMonth = new Date(year, month + 1, 0); // Ngày kết thúc (9/12/2023)
 
-        let moneyThisMonth = await this.consultationRepository.sum('price', {
-            status: Status.finished,
-            date: Between(startOfMonth, endOfMonth)
-        });
         const finish = await this.consultationRepository.count({
             where: { 
                 status: Status.finished,
@@ -898,5 +894,23 @@ export class ConsultationService extends BaseService<Consultation> {
                 doctorSalaryByMonth: doctorSalaryByMonth
             }
         };
+    }
+
+    async ageChart(month: number, year: number) {
+        const startOfMonth = new Date(year, month, 1); // Ngày bắt đầu (1/1/2023)
+        const endOfMonth = new Date(year, month + 1, 0); // Ngày kết thúc (9/12/2023)
+
+        let consultation = await this.consultationRepository.find({ where: [
+            {
+                status: Status.finished,
+                date: Between(startOfMonth, endOfMonth)
+            },
+            {
+                status: Status.confirmed,
+                date: Between(startOfMonth, endOfMonth)
+            }
+        ]});
+
+        
     }
 }
