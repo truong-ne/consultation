@@ -62,7 +62,7 @@ export class PrescriptionService extends BaseService<Prescription> {
         prescription.drugs.forEach(p => {
             data.push({
                 name: p.name,
-                code: p.code
+                code: p.code,
                 type: p.type,
                 note: p.note,
                 quantity: p.quantity,
