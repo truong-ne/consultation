@@ -789,12 +789,54 @@ export class ConsultationService extends BaseService<Consultation> {
         }
     }
 
+    async moneyChartOfMonthByDoctorId(doctorId: string, month: number, year: number) {
+        const startOfMonth = new Date(year, month - 1, 1); // Ngày bắt đầu (1/1/2023)
+        const endOfMonth = new Date(year, month, 0); // Ngày kết thúc (9/12/2023)
+
+        let consultations = await this.consultationRepository.find({ where: [
+            {
+                doctor: { id: doctorId },
+                status: Status.finished,
+                date: Between(startOfMonth, endOfMonth)
+            },
+            {
+                doctor: { id: doctorId },
+                status: Status.confirmed,
+                date: Between(startOfMonth, endOfMonth)
+            },
+            {
+                doctor: { id: doctorId },
+                status: Status.pending,
+                date: Between(startOfMonth, endOfMonth)
+            }
+        ], relations: ['doctor']});
+
+        const payByMedical = {};
+
+        for (let c of consultations) {
+            if (payByMedical[c.date.toLocaleDateString('en-US', { year: 'numeric', month: '2-digit', day: '2-digit' })]) {
+                payByMedical[c.date.toLocaleDateString('en-US', { year: 'numeric', month: '2-digit', day: '2-digit' })] += Math.round(c.price / 100 * 60);
+            } else {
+                payByMedical[c.date.toLocaleDateString('en-US', { year: 'numeric', month: '2-digit', day: '2-digit' })] = Math.round(c.price / 100 * 60);
+            }
+        }
+
+        return {
+            code: 200,
+            message: 'success',
+            data: {
+                moneyChartOfMonth: payByMedical,
+                consultation: consultations.length
+            }
+        }
+    }
+
     //    
-    //  Statistics for each admin
+    //  Statistics for admin
     //  
     async consultationChart(month: number, year: number) {
-        const startOfMonth = new Date(year, month, 1); // Ngày bắt đầu (1/1/2023)
-        const endOfMonth = new Date(year, month + 1, 0); // Ngày kết thúc (9/12/2023)
+        const startOfMonth = new Date(year, month - 1, 1); // Ngày bắt đầu (1/1/2023)
+        const endOfMonth = new Date(year, month, 0); // Ngày kết thúc (9/12/2023)
 
         const finish = await this.consultationRepository.count({
             where: { 
@@ -866,7 +908,8 @@ export class ConsultationService extends BaseService<Consultation> {
                 if(c.discount_code)
                     if (c.discount_code.type === "vnd") 
                         originPrice += c.price + c.discount_code.value
-                    else originPrice += c.price / (100 - c.discount_code.value) * 100
+                    else originPrice += Math.round(c.price / (100 - c.discount_code.value) * 100)
+                else originPrice += c.price
 
                 revenue += c.price
             })
@@ -881,7 +924,7 @@ export class ConsultationService extends BaseService<Consultation> {
             });
             doctorSalaryByMonth.push({
                 month: month + 1,
-                doctorSalaryByMonth: revenue / 60 * 100
+                doctorSalaryByMonth: Math.round(revenue / 100 * 60)
             });
         }
 
@@ -912,5 +955,105 @@ export class ConsultationService extends BaseService<Consultation> {
         ]});
 
         
+    }
+
+    async top10Doctor(month: number, year: number) {
+        const startOfMonth = new Date(year, month -1, 1); // Ngày bắt đầu (1/1/2023)
+        const endOfMonth = new Date(year, month, 0); // Ngày kết thúc (9/12/2023)
+
+        let consultations = await this.consultationRepository.find({ where: [
+            {
+                status: Status.finished,
+                date: Between(startOfMonth, endOfMonth)
+            },
+            {
+                status: Status.confirmed,
+                date: Between(startOfMonth, endOfMonth)
+            }
+        ], relations: ['doctor']});
+
+        const countByDoctor = {};
+
+        for (let c of consultations) {
+            if (countByDoctor[c.doctor.id]) {
+                countByDoctor[c.doctor.id] += 1;
+            } else {
+                countByDoctor[c.doctor.id] = 1;
+            }
+        }
+
+        const sortedFamiliar = Object.keys(countByDoctor).sort(
+            (a, b) => countByDoctor[b] - countByDoctor[a]
+        );
+        
+        const ids = sortedFamiliar.slice(0, 10);
+
+        const rabbitmq = await this.amqpConnection.request<any>({
+            exchange: 'healthline.doctor.information',
+            routingKey: 'doctor',
+            payload: ids,
+            timeout: 10000,
+        })
+
+        const data = []
+        rabbitmq.data.forEach(d => {
+            data.push({
+                ...d,
+                consultation: countByDoctor[d.id]
+            })
+        })
+
+        return {
+            code: 200,
+            message: "success",
+            data: data.sort(
+                (a, b) => b.consultation - a.consultation
+            )
+        }
+    }
+
+    //    
+    //  Statistics for user
+    //  
+    async moneyChartOfMonthByMedicalId(medicalId: string, month: number, year: number) {
+        const startOfMonth = new Date(year, month - 1, 1); // Ngày bắt đầu (1/1/2023)
+        const endOfMonth = new Date(year, month, 0); // Ngày kết thúc (9/12/2023)
+
+        let consultations = await this.consultationRepository.find({ where: [
+            {
+                medical_record: medicalId,
+                status: Status.finished,
+                date: Between(startOfMonth, endOfMonth)
+            },
+            {
+                medical_record: medicalId,
+                status: Status.confirmed,
+                date: Between(startOfMonth, endOfMonth)
+            },
+            {
+                medical_record: medicalId,
+                status: Status.pending,
+                date: Between(startOfMonth, endOfMonth)
+            }
+        ]});
+
+        const payByMedical = {};
+
+        for (let c of consultations) {
+            if (payByMedical[c.date.toLocaleDateString('en-US', { year: 'numeric', month: '2-digit', day: '2-digit' })]) {
+                payByMedical[c.date.toLocaleDateString('en-US', { year: 'numeric', month: '2-digit', day: '2-digit' })] += c.price;
+            } else {
+                payByMedical[c.date.toLocaleDateString('en-US', { year: 'numeric', month: '2-digit', day: '2-digit' })] = c.price;
+            }
+        }
+
+        return {
+            code: 200,
+            message: 'success',
+            data: {
+                moneyChartOfMonth: payByMedical,
+                consultation: consultations.length
+            }
+        }
     }
 }
