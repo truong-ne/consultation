@@ -2,7 +2,7 @@ import { Injectable, NotFoundException, ConflictException, UnauthorizedException
 import { InjectRepository } from "@nestjs/typeorm";
 import { BaseService } from "../../config/base.service";
 import { Doctor } from "../entities/doctor.entity";
-import { Between, In, Repository } from "typeorm";
+import { Between, In, LessThan, Repository } from "typeorm";
 import { Consultation } from "../entities/consultation.entity";
 import { User } from "../entities/user.entity";
 import { Status } from "../../config/enum.constants";
@@ -940,10 +940,10 @@ export class ConsultationService extends BaseService<Consultation> {
     }
 
     async ageChart(month: number, year: number) {
-        const startOfMonth = new Date(year, month, 1); // Ngày bắt đầu (1/1/2023)
-        const endOfMonth = new Date(year, month + 1, 0); // Ngày kết thúc (9/12/2023)
+        const startOfMonth = new Date(year, month - 1, 1); // Ngày bắt đầu (1/1/2023)
+        const endOfMonth = new Date(year, month, 0); // Ngày kết thúc (9/12/2023)
 
-        let consultation = await this.consultationRepository.find({ where: [
+        let consultations = await this.consultationRepository.find({ where: [
             {
                 status: Status.finished,
                 date: Between(startOfMonth, endOfMonth)
@@ -954,7 +954,96 @@ export class ConsultationService extends BaseService<Consultation> {
             }
         ]});
 
+        const moneyByMedical = {}
+        consultations.forEach(c => {
+            if(!moneyByMedical[c.medical_record])
+                moneyByMedical[c.medical_record] = 0
+            moneyByMedical[c.medical_record] += c.price
+        })
+
+        const ids = Array.from(new Set(consultations.map(p => p.medical_record)))
+        const rangeAge = await this.amqpConnection.request<any>({
+            exchange: 'healthline.user.information',
+            routingKey: 'range_age1',
+            payload: { ids: ids, year: year },
+            timeout: 10000,
+        })
         
+        for (let key in rangeAge) {
+            var sumPrice = 0
+            rangeAge[key].forEach(m => {
+                sumPrice += moneyByMedical[m]
+            })
+            rangeAge[key] = sumPrice
+        }
+
+        return rangeAge
+    }
+
+    async medicalStatistic(year: number) {
+        const oldYear = new Date(year - 1, 12, 0);
+
+        const oldConsultation = await this.consultationRepository.find({ where: [
+            {
+                status: Status.finished,
+                date: LessThan(oldYear)
+            },
+            {
+                status: Status.confirmed,
+                date: LessThan(oldYear)
+            }
+        ]})
+        const countByMedical = {}
+        oldConsultation.forEach(c => {
+            if (countByMedical[c.medical_record]) {
+                countByMedical[c.medical_record] += 1;
+            } else {
+                countByMedical[c.medical_record] = 1;
+            }
+        })
+
+        const medicalByMonth = []
+        for (let month = 0; month < 12; month++) {
+            const startOfMonth = new Date(year, month, 1); 
+            const endOfMonth = new Date(year, month + 1, 0);
+
+            const consultations = await this.consultationRepository.find({ where: [
+                {
+                    status: Status.finished,
+                    date: Between(startOfMonth, endOfMonth)
+                },
+                {
+                    status: Status.confirmed,
+                    date: Between(startOfMonth, endOfMonth)
+                }
+            ]})
+            var newMedical = 0
+            var oldMedical = 0
+            Array.from(new Set(consultations.map(p => p.medical_record))).forEach(c => {
+                if(countByMedical[c]) {
+                    oldMedical++
+                    countByMedical[c]++
+                } 
+                else {
+                    newMedical++
+                    countByMedical[c] = 1
+                }
+            })
+
+            medicalByMonth.push({
+                month: month + 1,
+                newMedical: newMedical,
+                oldMedical: oldMedical
+            })
+        }
+
+        return {
+            code: 200,
+            message: 'success',
+            data: {
+                medicalByMonth: medicalByMonth
+            }
+        }
     }
 
     async top10Doctor(month: number, year: number) {

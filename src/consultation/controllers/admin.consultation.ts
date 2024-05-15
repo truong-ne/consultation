@@ -57,4 +57,20 @@ export class AdminConsultation {
     async getConsultation(@Param('doctorId') doctorId: string) {
         return await this.consultationService.getConsultation(doctorId)
     }
+
+    @UseGuards(AdminGuard)
+    @ApiBearerAuth()
+    @ApiOperation({ summary: 'Thống kê số lần khám của bệnh nhân theo năm' })
+    @Get('medical/:year')
+    async medicalStatistic(@Param('year') year: number) {
+        return await this.consultationService.medicalStatistic(year)
+    }
+
+    @UseGuards(AdminGuard)
+    @ApiBearerAuth()
+    @ApiOperation({ summary: 'Thống kê số lần khám của bệnh nhân theo năm' })
+    @Get('medical/age/:month/:year')
+    async ageChart(@Param('month') month: number, @Param('year') year: number) {
+        return await this.consultationService.ageChart(month, year)
+    }
 }
