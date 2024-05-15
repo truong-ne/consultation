@@ -964,7 +964,7 @@ export class ConsultationService extends BaseService<Consultation> {
         const ids = Array.from(new Set(consultations.map(p => p.medical_record)))
         const rangeAge = await this.amqpConnection.request<any>({
             exchange: 'healthline.user.information',
-            routingKey: 'range_age1',
+            routingKey: 'range_age',
             payload: { ids: ids, year: year },
             timeout: 10000,
         })
