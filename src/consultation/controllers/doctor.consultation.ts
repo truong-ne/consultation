@@ -94,9 +94,9 @@ export class DoctorConsultation {
 
     @UseGuards(DoctorGuard)
     @ApiBearerAuth()
-    @Get('consultation/money/chart/:doctorId')
-    async moneyChartByDoctorIdAdmin(@Param('doctorId') doctorId: string) {
-        // return await this.consultationService.moneyChartByDoctorId(doctorId)
+    @Get('consultation/money/chart/:doctorId/:year')
+    async moneyChartByDoctorIdAdmin(@Param('doctorId') doctorId: string, @Param('year') year: number) {
+        return await this.consultationService.moneyChartByDoctorId(doctorId, year)
     }
 
     @UseGuards(DoctorGuard)

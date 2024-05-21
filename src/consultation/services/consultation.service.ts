@@ -32,7 +32,7 @@ export class ConsultationService extends BaseService<Consultation> {
 
     @Cron(CronExpression.EVERY_30_SECONDS)
     async scheduleCron() {
-        const consultations = await this.consultationRepository.find({ where: { status: In([Status.confirmed, Status.pending]) }, relations: ['doctor'] })
+        const consultations = await this.consultationRepository.find({ where: { status: In([Status.confirmed, Status.pending]) }, relations: ['doctor', 'user'] })
         for (let consultation of consultations) {
             if (consultation.date.getTime() <= Date.now() && consultation.status === Status.confirmed) {
                 consultation.status = Status.finished
@@ -40,11 +40,21 @@ export class ConsultationService extends BaseService<Consultation> {
 
                 consultation.doctor.account_balance += consultation.price
                 await this.doctorRepository.save(consultation.doctor)
+
+                await this.amqpConnection.request<any>({
+                    exchange: 'healthline.chat',
+                    routingKey: 'room',
+                    payload: { doctorId: consultation.doctor.id, userId: consultation.user.id },
+                    timeout: 10000,
+                })
             }
 
             if (consultation.date.getTime() <= Date.now() && consultation.status === Status.pending) {
                 consultation.status = Status.canceled
                 await this.consultationRepository.save(consultation)
+
+                consultation.user.account_balance += consultation.price
+                await this.userRepository.save(consultation.user) 
             }
         }
     }
