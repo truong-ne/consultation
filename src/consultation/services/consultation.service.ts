@@ -134,7 +134,7 @@ export class ConsultationService extends BaseService<Consultation> {
                     else if (c.status === 'finished') {
                         for(let r of rooms) {
                             if(c.id = r.consultation) {
-                                consultation['room'] = r.id
+                                consultation['room'] = r._id
                                 break
                             }
                         }
@@ -144,6 +144,8 @@ export class ConsultationService extends BaseService<Consultation> {
                     break
                 }
         })
+
+        return data
     }
 
     async getConsultation(doctor_id: string) {
