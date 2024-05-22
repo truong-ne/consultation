@@ -2,7 +2,7 @@ import { Injectable, NotFoundException, ConflictException, UnauthorizedException
 import { InjectRepository } from "@nestjs/typeorm";
 import { BaseService } from "../../config/base.service";
 import { Doctor } from "../entities/doctor.entity";
-import { Between, In, Repository } from "typeorm";
+import { Between, In, LessThan, Repository } from "typeorm";
 import { Consultation } from "../entities/consultation.entity";
 import { User } from "../entities/user.entity";
 import { Status } from "../../config/enum.constants";
@@ -32,7 +32,7 @@ export class ConsultationService extends BaseService<Consultation> {
 
     @Cron(CronExpression.EVERY_30_SECONDS)
     async scheduleCron() {
-        const consultations = await this.consultationRepository.find({ where: { status: In([Status.confirmed, Status.pending]) }, relations: ['doctor'] })
+        const consultations = await this.consultationRepository.find({ where: { status: In([Status.confirmed, Status.pending]) }, relations: ['doctor', 'user'] })
         for (let consultation of consultations) {
             if (consultation.date.getTime() <= Date.now() && consultation.status === Status.confirmed) {
                 consultation.status = Status.finished
@@ -40,11 +40,21 @@ export class ConsultationService extends BaseService<Consultation> {
 
                 consultation.doctor.account_balance += consultation.price
                 await this.doctorRepository.save(consultation.doctor)
+
+                await this.amqpConnection.request<any>({
+                    exchange: 'healthline.chat',
+                    routingKey: 'room',
+                    payload: { consultationId: consultation.id, doctorId: consultation.doctor.id, userId: consultation.user.id },
+                    timeout: 10000,
+                })
             }
 
             if (consultation.date.getTime() <= Date.now() && consultation.status === Status.pending) {
                 consultation.status = Status.canceled
                 await this.consultationRepository.save(consultation)
+
+                consultation.user.account_balance += consultation.price
+                await this.userRepository.save(consultation.user) 
             }
         }
     }
@@ -92,6 +102,15 @@ export class ConsultationService extends BaseService<Consultation> {
             return rabbitmq
         }
 
+        const finished = consultations.filter(c => c.status === 'finished')
+
+        const rooms = await this.amqpConnection.request<any>({
+            exchange: 'healthline.chat',
+            routingKey: 'get_room',
+            payload: Array.from(new Set(finished.map(c => c.id))),
+            timeout: 10000,
+        })
+
         consultations.forEach(c => {
             for (let item of rabbitmq.data)
                 if (c.medical_record === item.id) {
@@ -100,7 +119,6 @@ export class ConsultationService extends BaseService<Consultation> {
                         doctor: {
                             avatar: c.doctor.avatar,
                             full_name: c.doctor.full_name,
-                            specialty: c.doctor.specialty
                         },
                         medical: item,
                         date: c.date,
@@ -113,18 +131,21 @@ export class ConsultationService extends BaseService<Consultation> {
                     }
                     if (c.status === 'pending' || c.status === 'confirmed')
                         data.coming.push(consultation)
-                    else if (c.status === 'finished')
+                    else if (c.status === 'finished') {
+                        for(let r of rooms) {
+                            if(c.id = r.consultation) {
+                                consultation['room'] = r._id
+                                break
+                            }
+                        }
                         data.finish.push(consultation)
+                    }
                     else data.cancel.push(consultation)
                     break
                 }
         })
 
-        return {
-            code: 200,
-            message: "success",
-            data: data
-        }
+        return data
     }
 
     async getConsultation(doctor_id: string) {
@@ -261,6 +282,34 @@ export class ConsultationService extends BaseService<Consultation> {
         }
     }
 
+    async cancelConsultationConfirm(user_id: string, consultation_id: string) {
+        const consultation = await this.consultationRepository.findOne({
+            where: { id: consultation_id },
+            relations: ['user', 'doctor']
+        })
+
+        if (!consultation) throw new NotFoundException('consultation_not_found')
+
+        if (consultation.user.id !== user_id)
+            throw new UnauthorizedException('unauthorized')
+
+        if (consultation.status !== Status.confirmed)
+            throw new BadRequestException('can_not_cancel_because_status_is_not_confirm')
+
+        consultation.status = Status.canceled
+        await this.consultationRepository.save(consultation)
+
+        await this.refund(consultation.user.id, consultation.price / 100 * 70)
+
+        consultation.doctor.account_balance +=  consultation.price / 100 * 30
+        await this.doctorRepository.save(consultation.doctor)
+
+        return {
+            code: 200,
+            message: 'success'
+        }
+    }
+
     async userConsultation(userId: string) {
         const consultations = await this.consultationRepository.find({
             where: { user: { id: userId } },
@@ -375,7 +424,7 @@ export class ConsultationService extends BaseService<Consultation> {
 
             averageRatingsPerDoctor.push({
                 doctor_id: doctorId,
-                averageRating: averageRating.toFixed(1),
+                averageRating: parseFloat(averageRating.toFixed(1)),
                 quantity: ratings.quantity
             });
         });
@@ -424,115 +473,6 @@ export class ConsultationService extends BaseService<Consultation> {
             data: {
                 totalMoney: totalMoney,
                 quantityThisMonth: moneyThisMonth
-            }
-        }
-    }
-
-    async moneyChart() {
-        const currentYear = this.VNTime().getUTCFullYear();
-
-        const moneyByMonth = [];
-        for (let month = 0; month < 12; month++) {
-            const startOfMonth = new Date(currentYear, month, 1); // Ngày bắt đầu (1/1/2023)
-            const endOfMonth = new Date(currentYear, month + 1, 0); // Ngày kết thúc (9/12/2023)
-
-            let moneyThisMonth = await this.consultationRepository.sum('price', {
-                status: Status.finished,
-                date: Between(startOfMonth, endOfMonth)
-            });
-
-            moneyThisMonth += await this.consultationRepository.sum('price', {
-                status: Status.confirmed,
-                date: Between(startOfMonth, endOfMonth)
-            });
-
-            if (moneyThisMonth !== null) {
-                moneyByMonth.push({
-                    month: month + 1,
-                    totalMoneyThisMonth: moneyThisMonth
-                });
-            } else {
-                moneyByMonth.push({
-                    month: month + 1,
-                    totalMoneyThisMonth: 0
-                });
-            }
-        }
-
-        return {
-            data: {
-                moneyByMonth: moneyByMonth
-            }
-        };
-    }
-
-    async moneyChartByDoctorId(id: string) {
-        const currentYear = this.VNTime().getUTCFullYear();
-
-        const moneyByMonth = [];
-        for (let month = 0; month < 12; month++) {
-            const startOfMonth = new Date(currentYear, month, 1); // Ngày bắt đầu (1/1/2023)
-            const endOfMonth = new Date(currentYear, month + 1, 0); // Ngày kết thúc (9/12/2023)
-
-            let moneyThisMonth = await this.consultationRepository.sum('price', {
-                status: Status.finished,
-                date: Between(startOfMonth, endOfMonth),
-                doctor: { id: id }
-            });
-
-            moneyThisMonth += await this.consultationRepository.sum('price', {
-                status: Status.confirmed,
-                date: Between(startOfMonth, endOfMonth),
-                doctor: { id: id }
-            });
-
-            if (moneyThisMonth !== null) {
-                moneyByMonth.push({
-                    month: month + 1,
-                    totalMoneyThisMonth: moneyThisMonth
-                });
-            } else {
-                moneyByMonth.push({
-                    month: month + 1,
-                    totalMoneyThisMonth: 0
-                });
-            }
-        }
-
-        return {
-            data: {
-                moneyByMonth: moneyByMonth
-            }
-        };
-    }
-
-    async consultationChart() {
-        const finish = await this.consultationRepository.count({
-            where: { status: Status.finished }
-        })
-
-        const confirm = await this.consultationRepository.count({
-            where: { status: Status.confirmed }
-        })
-
-        const pending = await this.consultationRepository.count({
-            where: { status: Status.pending }
-        })
-
-        const cancel = await this.consultationRepository.count({
-            where: { status: Status.canceled }
-        })
-
-        const denied = await this.consultationRepository.count({
-            where: { status: Status.denied }
-        })
-
-        return {
-            data: {
-                finish: finish,
-                confirm: confirm,
-                pending: pending,
-                cancel: cancel + denied
             }
         }
     }
@@ -711,5 +651,520 @@ export class ConsultationService extends BaseService<Consultation> {
         const medical = await this.consultationRepository.findBy({ status: In([Status.pending, Status.confirmed]), medical_record: id })
 
         return medical.length === 0
+    }
+
+    async consultationInformation(ids: string[]) {
+        const consultation = await this.consultationRepository.find({ where: { id: In(ids)} })
+
+        if(consultation.length < ids.length) 
+            return {
+                code: 400,
+                message: 'Not Found Consultation'
+            }
+        
+        const data = []
+        consultation.forEach(c => {
+            data.push({
+                date: c.date,
+                expected_time: c.expected_time
+            })
+        })
+        return data
+    }
+
+    //    
+    //  Statistics for each doctor
+    //  
+    async statisticTable(doctorId: string): Promise<any> {
+        const consultations = await this.consultationRepository.find({ where: { doctor: { id: doctorId } }, relations: ['doctor', 'discount_code'] })
+
+        var sales = 0
+        var discount = 0
+        for (let c of consultations) {
+            var times = (c.expected_time.split("-").length) * 30
+            sales += times * c.doctor.fee_per_minutes
+            if (c.discount_code !== null) {
+                if (c.discount_code.type === "vnd") {
+                    discount += c.discount_code.value
+                } else discount += times * c.doctor.fee_per_minutes / 100 * c.discount_code.value
+            }
+        }
+
+        const data = {
+            "type_of_service": "Khám Bệnh Trực Tuyến",
+            "quantity": consultations.length,
+            "pending": consultations.filter((item) => { return item.status === "pending"; }).length,
+            "confirmed": consultations.filter((item) => { return item.status === "confirmed"; }).length,
+            "sales": sales,
+            "finished": consultations.filter((item) => { return item.status === "finished"; }).length,
+            "discount": discount,
+            "denied": consultations.filter((item) => { return item.status === "denied"; }).length,
+            "canceled": consultations.filter((item) => { return item.status === "canceled"; }).length,
+            "revenue": sales - discount,
+        }
+
+        return {
+            code: 200,
+            message: "success",
+            data: data
+        }
+    }
+
+    async moneyChartByDoctorId(doctorId: string, year: number) {
+        const moneyByMonth = [];
+        for (let month = 0; month < 12; month++) {
+            const startOfMonth = new Date(year, month, 1);
+            const endOfMonth = new Date(year, month + 1, 0);
+            let moneyThisMonth = await this.consultationRepository.sum('price', {
+                status: Status.finished,
+                date: Between(startOfMonth, endOfMonth),
+                doctor: { id: doctorId }
+            });
+
+            moneyThisMonth += await this.consultationRepository.sum('price', {
+                status: Status.confirmed,
+                date: Between(startOfMonth, endOfMonth),
+                doctor: { id: doctorId }
+            });
+
+            if (moneyThisMonth !== null) {
+                moneyByMonth.push({
+                    month: month + 1,
+                    totalMoneyThisMonth: moneyThisMonth
+                });
+            } else {
+                moneyByMonth.push({
+                    month: month + 1,
+                    totalMoneyThisMonth: 0
+                });
+            }
+        }
+
+        return {
+            code: 200,
+            message: "success",
+            data: {
+                moneyByMonth: moneyByMonth
+            }
+        };
+    }
+
+    async familiarCustomers(doctorId: string): Promise<any> {
+        const consultations = await this.consultationRepository.find({ where: { doctor: { id: doctorId }, status: Status.finished }, relations: ['doctor', "user"] })
+
+        const countByFamiliar = {};
+
+        for (let c of consultations) {
+            if (countByFamiliar[c.user.id]) {
+                countByFamiliar[c.user.id] += 1;
+            } else {
+                countByFamiliar[c.user.id] = 1;
+            }
+        }
+
+        const sortedFamiliar = Object.keys(countByFamiliar).sort(
+            (a, b) => countByFamiliar[b] - countByFamiliar[a]
+        );
+        
+        const ids = sortedFamiliar.slice(0, 10);
+
+        const rabbitmq = await this.amqpConnection.request<any>({
+            exchange: 'healthline.user.information',
+            routingKey: 'user',
+            payload: ids,
+            timeout: 10000,
+        })
+
+        return {
+            code: 200,
+            message: "success",
+            data: rabbitmq.data
+        }
+    }
+
+    async newCustomers(doctorId: string): Promise<any> {
+        const consultations = await this.consultationRepository.find({ where: { doctor: { id: doctorId }, status: Status.finished }, relations: ['doctor', "user"] })
+
+        const countByNew = {};
+
+        for (let c of consultations) {
+            countByNew[c.user.id] = c.date;
+        }
+
+        const sortedNew = Object.keys(countByNew).sort(
+            (a, b) => countByNew[b] - countByNew[a]
+        );
+        
+        const ids = sortedNew.slice(0, 10);
+
+        const rabbitmq = await this.amqpConnection.request<any>({
+            exchange: 'healthline.user.information',
+            routingKey: 'user',
+            payload: ids,
+            timeout: 10000,
+        })
+
+        return {
+            code: 200,
+            message: "success",
+            data: rabbitmq.data
+        }
+    }
+
+    async moneyChartOfMonthByDoctorId(doctorId: string, month: number, year: number) {
+        const startOfMonth = new Date(year, month - 1, 1); // Ngày bắt đầu (1/1/2023)
+        const endOfMonth = new Date(year, month, 0); // Ngày kết thúc (9/12/2023)
+
+        let consultations = await this.consultationRepository.find({ where: [
+            {
+                doctor: { id: doctorId },
+                status: Status.finished,
+                date: Between(startOfMonth, endOfMonth)
+            },
+            {
+                doctor: { id: doctorId },
+                status: Status.confirmed,
+                date: Between(startOfMonth, endOfMonth)
+            },
+            {
+                doctor: { id: doctorId },
+                status: Status.pending,
+                date: Between(startOfMonth, endOfMonth)
+            }
+        ], relations: ['doctor']});
+
+        const payByMedical = {};
+
+        for (let c of consultations) {
+            if (payByMedical[c.date.toLocaleDateString('en-US', { year: 'numeric', month: '2-digit', day: '2-digit' })]) {
+                payByMedical[c.date.toLocaleDateString('en-US', { year: 'numeric', month: '2-digit', day: '2-digit' })] += Math.round(c.price / 100 * 60);
+            } else {
+                payByMedical[c.date.toLocaleDateString('en-US', { year: 'numeric', month: '2-digit', day: '2-digit' })] = Math.round(c.price / 100 * 60);
+            }
+        }
+
+        return {
+            code: 200,
+            message: 'success',
+            data: {
+                moneyChartOfMonth: payByMedical,
+                consultation: consultations.length
+            }
+        }
+    }
+
+    //    
+    //  Statistics for admin
+    //  
+    async consultationChart(month: number, year: number) {
+        const startOfMonth = new Date(year, month - 1, 1); // Ngày bắt đầu (1/1/2023)
+        const endOfMonth = new Date(year, month, 0); // Ngày kết thúc (9/12/2023)
+
+        const finish = await this.consultationRepository.count({
+            where: { 
+                status: Status.finished,
+                date: Between(startOfMonth, endOfMonth)
+            }
+        })
+
+        const confirm = await this.consultationRepository.count({
+            where: { 
+                status: Status.confirmed,
+                date: Between(startOfMonth, endOfMonth)
+            }
+        })
+
+        const pending = await this.consultationRepository.count({
+            where: { 
+                status: Status.pending,
+                date: Between(startOfMonth, endOfMonth)
+            }
+        })
+
+        const cancel = await this.consultationRepository.count({
+            where: { 
+                status: Status.canceled,
+                date: Between(startOfMonth, endOfMonth)
+            }
+        })
+
+        const denied = await this.consultationRepository.count({
+            where: { 
+                status: Status.denied,
+                date: Between(startOfMonth, endOfMonth)
+            }
+        })
+
+        return {
+            data: {
+                finish: finish,
+                confirm: confirm,
+                pending: pending,
+                cancel: cancel + denied
+            }
+        }
+    }
+
+    async moneyChart(year: number) {
+        const moneyByMonth = [];
+        const revenueByMonth = [];
+        const doctorSalaryByMonth = []
+        for (let month = 0; month < 12; month++) {
+            const startOfMonth = new Date(year, month, 1); // Ngày bắt đầu (1/1/2023)
+            const endOfMonth = new Date(year, month + 1, 0); // Ngày kết thúc (9/12/2023)
+
+            let consultation = await this.consultationRepository.find({ where: [
+                {
+                    status: Status.finished,
+                    date: Between(startOfMonth, endOfMonth)
+                },
+                {
+                    status: Status.confirmed,
+                    date: Between(startOfMonth, endOfMonth)
+                }
+            ], relations: ['discount_code']});
+
+            var originPrice = 0
+            var revenue = 0
+            consultation.forEach(c => {
+                if(c.discount_code)
+                    if (c.discount_code.type === "vnd") 
+                        originPrice += c.price + c.discount_code.value
+                    else originPrice += Math.round(c.price / (100 - c.discount_code.value) * 100)
+                else originPrice += c.price
+
+                revenue += c.price
+            })
+
+            moneyByMonth.push({
+                month: month + 1,
+                moneyByMonth: originPrice
+            });
+            revenueByMonth.push({
+                month: month + 1,
+                revenueByMonth: revenue
+            });
+            doctorSalaryByMonth.push({
+                month: month + 1,
+                doctorSalaryByMonth: Math.round(revenue / 100 * 60)
+            });
+        }
+
+        return {
+            code: 200,
+            message: 'success',
+            data: {
+                moneyByMonth: moneyByMonth,
+                revenueByMonth: revenueByMonth,
+                doctorSalaryByMonth: doctorSalaryByMonth
+            }
+        };
+    }
+
+    async ageChart(month: number, year: number) {
+        const startOfMonth = new Date(year, month - 1, 1); // Ngày bắt đầu (1/1/2023)
+        const endOfMonth = new Date(year, month, 0); // Ngày kết thúc (9/12/2023)
+
+        let consultations = await this.consultationRepository.find({ where: [
+            {
+                status: Status.finished,
+                date: Between(startOfMonth, endOfMonth)
+            },
+            {
+                status: Status.confirmed,
+                date: Between(startOfMonth, endOfMonth)
+            }
+        ]});
+
+        const moneyByMedical = {}
+        consultations.forEach(c => {
+            if(!moneyByMedical[c.medical_record])
+                moneyByMedical[c.medical_record] = 0
+            moneyByMedical[c.medical_record] += c.price
+        })
+
+        const ids = Array.from(new Set(consultations.map(p => p.medical_record)))
+        const rangeAge = await this.amqpConnection.request<any>({
+            exchange: 'healthline.user.information',
+            routingKey: 'range_age',
+            payload: { ids: ids, year: year },
+            timeout: 10000,
+        })
+        
+        for (let key in rangeAge) {
+            var sumPrice = 0
+            rangeAge[key].forEach(m => {
+                sumPrice += moneyByMedical[m]
+            })
+            rangeAge[key] = sumPrice
+        }
+
+        return rangeAge
+    }
+
+    async medicalStatistic(year: number) {
+        const oldYear = new Date(year - 1, 12, 0);
+
+        const oldConsultation = await this.consultationRepository.find({ where: [
+            {
+                status: Status.finished,
+                date: LessThan(oldYear)
+            },
+            {
+                status: Status.confirmed,
+                date: LessThan(oldYear)
+            }
+        ]})
+        const countByMedical = {}
+        oldConsultation.forEach(c => {
+            if (countByMedical[c.medical_record]) {
+                countByMedical[c.medical_record] += 1;
+            } else {
+                countByMedical[c.medical_record] = 1;
+            }
+        })
+
+        const medicalByMonth = []
+        for (let month = 0; month < 12; month++) {
+            const startOfMonth = new Date(year, month, 1); 
+            const endOfMonth = new Date(year, month + 1, 0);
+
+            const consultations = await this.consultationRepository.find({ where: [
+                {
+                    status: Status.finished,
+                    date: Between(startOfMonth, endOfMonth)
+                },
+                {
+                    status: Status.confirmed,
+                    date: Between(startOfMonth, endOfMonth)
+                }
+            ]})
+            var newMedical = 0
+            var oldMedical = 0
+            Array.from(new Set(consultations.map(p => p.medical_record))).forEach(c => {
+                if(countByMedical[c]) {
+                    oldMedical++
+                    countByMedical[c]++
+                } 
+                else {
+                    newMedical++
+                    countByMedical[c] = 1
+                }
+            })
+
+            medicalByMonth.push({
+                month: month + 1,
+                newMedical: newMedical,
+                oldMedical: oldMedical
+            })
+        }
+
+        return {
+            code: 200,
+            message: 'success',
+            data: {
+                medicalByMonth: medicalByMonth
+            }
+        }
+    }
+
+    async top10Doctor(month: number, year: number) {
+        const startOfMonth = new Date(year, month -1, 1); // Ngày bắt đầu (1/1/2023)
+        const endOfMonth = new Date(year, month, 0); // Ngày kết thúc (9/12/2023)
+
+        let consultations = await this.consultationRepository.find({ where: [
+            {
+                status: Status.finished,
+                date: Between(startOfMonth, endOfMonth)
+            },
+            {
+                status: Status.confirmed,
+                date: Between(startOfMonth, endOfMonth)
+            }
+        ], relations: ['doctor']});
+
+        const countByDoctor = {};
+
+        for (let c of consultations) {
+            if (countByDoctor[c.doctor.id]) {
+                countByDoctor[c.doctor.id] += 1;
+            } else {
+                countByDoctor[c.doctor.id] = 1;
+            }
+        }
+
+        const sortedFamiliar = Object.keys(countByDoctor).sort(
+            (a, b) => countByDoctor[b] - countByDoctor[a]
+        );
+        
+        const ids = sortedFamiliar.slice(0, 10);
+
+        const rabbitmq = await this.amqpConnection.request<any>({
+            exchange: 'healthline.doctor.information',
+            routingKey: 'doctor',
+            payload: ids,
+            timeout: 10000,
+        })
+
+        const data = []
+        rabbitmq.data.forEach(d => {
+            data.push({
+                ...d,
+                consultation: countByDoctor[d.id]
+            })
+        })
+
+        return {
+            code: 200,
+            message: "success",
+            data: data.sort(
+                (a, b) => b.consultation - a.consultation
+            )
+        }
+    }
+
+    //    
+    //  Statistics for user
+    //  
+    async moneyChartOfMonthByMedicalId(medicalId: string, month: number, year: number) {
+        const startOfMonth = new Date(year, month - 1, 1); // Ngày bắt đầu (1/1/2023)
+        const endOfMonth = new Date(year, month, 0); // Ngày kết thúc (9/12/2023)
+
+        let consultations = await this.consultationRepository.find({ where: [
+            {
+                medical_record: medicalId,
+                status: Status.finished,
+                date: Between(startOfMonth, endOfMonth)
+            },
+            {
+                medical_record: medicalId,
+                status: Status.confirmed,
+                date: Between(startOfMonth, endOfMonth)
+            },
+            {
+                medical_record: medicalId,
+                status: Status.pending,
+                date: Between(startOfMonth, endOfMonth)
+            }
+        ]});
+
+        const payByMedical = {};
+
+        for (let c of consultations) {
+            if (payByMedical[c.date.toLocaleDateString('en-US', { year: 'numeric', month: '2-digit', day: '2-digit' })]) {
+                payByMedical[c.date.toLocaleDateString('en-US', { year: 'numeric', month: '2-digit', day: '2-digit' })] += c.price;
+            } else {
+                payByMedical[c.date.toLocaleDateString('en-US', { year: 'numeric', month: '2-digit', day: '2-digit' })] = c.price;
+            }
+        }
+
+        return {
+            code: 200,
+            message: 'success',
+            data: {
+                moneyChartOfMonth: payByMedical,
+                consultation: consultations.length
+            }
+        }
     }
 }

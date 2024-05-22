@@ -11,12 +11,17 @@ import * as dotenv from 'dotenv'
 import { ConsultationConsumer } from './consumers/consultation.consumer';
 import { Discount } from '../discount/entities/discount.entity';
 import { ScheduleModule } from '@nestjs/schedule';
+import { Prescription } from './entities/prescription.entiy';
+import { PrescriptionService } from './services/prescription.service';
+import { PrescriptionController } from './controllers/prescription.controller';
+import { Drug } from './entities/drug.entity';
+import { AdminConsultation } from './controllers/admin.consultation';
 
 dotenv.config()
 
 @Module({
     imports: [
-        TypeOrmModule.forFeature([Doctor, Consultation, User, Discount]),
+        TypeOrmModule.forFeature([Doctor, Consultation, User, Discount, Prescription, Drug]),
         RabbitMQModule.forRoot(RabbitMQModule, {
             exchanges: [
                 {
@@ -39,10 +44,13 @@ dotenv.config()
     ],
     controllers: [
         UserConsultation,
-        DoctorConsultation
+        DoctorConsultation,
+        AdminConsultation,
+        PrescriptionController
     ],
     providers: [
         ConsultationService,
+        PrescriptionService,
         ConsultationConsumer
     ]
 })

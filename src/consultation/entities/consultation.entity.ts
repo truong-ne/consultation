@@ -6,6 +6,7 @@ import { User } from "./user.entity";
 import { Doctor } from "./doctor.entity";
 import { Feedback } from "src/feedback/entities/feedback.entity";
 import { Discount } from "src/discount/entities/discount.entity";
+import { Prescription } from "./prescription.entiy";
 
 @Entity({ name: 'Consultations' })
 export class Consultation {
@@ -25,7 +26,7 @@ export class Consultation {
     @Column()
     price: number
 
-    @Column({ nullable: true })
+    @Column({ nullable: true, length: 10 })
     symptoms: string
 
     @Column({ name: 'medical_history', nullable: true })
@@ -58,6 +59,9 @@ export class Consultation {
     @ManyToOne(() => Discount, discount => discount.code)
     @JoinColumn({ name: 'discount' })
     discount_code: Discount
+
+    @OneToOne(() => Prescription, p => p.consultation, { onDelete: 'NO ACTION' })
+    prescription: Prescription
 
     @Column({ type: 'timestamp', name: 'update_at', default: () => 'CURRENT_TIMESTAMP', onUpdate: 'CURRENT_TIMESTAMP' })
     updated_at: Date;

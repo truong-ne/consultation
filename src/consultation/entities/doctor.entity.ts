@@ -16,13 +16,19 @@ export class Doctor {
     @Column()
     phone: string
 
+    @Column({ default: true })
+    gender: boolean
+
+    @Column({ name: 'day_of_birth', nullable: true })
+    dayOfBirth: string
+
     @Column()
     password: string
 
     @Column({ nullable: true })
     email: string
 
-    @Column({ default: true })
+    @Column({ default: false })
     isActive: boolean
 
     @Column({ name: 'full_name' })
@@ -34,16 +40,9 @@ export class Doctor {
     @Column({ nullable: true })
     biography: string
 
-    @Column({ type: 'enum', enum: Specialty })
-    specialty: string
-
     @Column({ name: 'account_balance', default: 0 })
     @Min(0)
     account_balance: number
-
-    @Column({ default: 0 })
-    @Min(0)
-    experience: number
 
     @Column({ default: 0 })
     @Min(0)

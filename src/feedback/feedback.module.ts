@@ -7,10 +7,11 @@ import { Consultation } from '../consultation/entities/consultation.entity';
 import { FeedbackController } from './controllers/feedback.controller';
 import { Doctor } from '../consultation/entities/doctor.entity';
 import { RabbitMQModule } from '@golevelup/nestjs-rabbitmq';
+import { User } from '../consultation/entities/user.entity';
 
 @Module({
     imports: [
-        TypeOrmModule.forFeature([Feedback, Consultation, Doctor]),
+        TypeOrmModule.forFeature([Feedback, Consultation, Doctor, User]),
         ScheduleModule.forRoot(),
         RabbitMQModule.forRoot(RabbitMQModule, {
             exchanges: [

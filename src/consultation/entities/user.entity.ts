@@ -23,6 +23,12 @@ export class User {
     @Column({ name: 'account_balance', default: 0 })
     account_balance: number
 
+    @Column({ name: 'point', default: 0 })
+    point: number
+
+    @Column("text", { name: "wish_list", array: true, default: [] })
+    wish_list: string[]
+
     @Column({ name: 'email_notification', default: false })
     email_notification: boolean
 

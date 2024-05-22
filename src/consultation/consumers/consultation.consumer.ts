@@ -25,4 +25,13 @@ export class ConsultationConsumer {
     async checkMedicalInConsulation(id: string) {
         return await this.consultationService.checkMedicalInConsulation(id)
     }
+
+    @RabbitRPC({
+        exchange: 'healthline.user.information',
+        routingKey: 'consultation',
+        queue: 'consultation',
+    })
+    async consultationInformation(ids: string[]) {
+        return await this.consultationService.consultationInformation(ids)
+    }
 }
