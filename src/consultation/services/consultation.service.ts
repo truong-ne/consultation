@@ -44,7 +44,7 @@ export class ConsultationService extends BaseService<Consultation> {
                 await this.amqpConnection.request<any>({
                     exchange: 'healthline.chat',
                     routingKey: 'room',
-                    payload: { doctorId: consultation.doctor.id, userId: consultation.user.id },
+                    payload: { consultationId: consultation.id, doctorId: consultation.doctor.id, userId: consultation.user.id },
                     timeout: 10000,
                 })
             }
@@ -102,6 +102,15 @@ export class ConsultationService extends BaseService<Consultation> {
             return rabbitmq
         }
 
+        const finished = consultations.filter(c => c.status === 'finished')
+
+        const rooms = await this.amqpConnection.request<any>({
+            exchange: 'healthline.chat',
+            routingKey: 'get_room',
+            payload: Array.from(new Set(finished.map(c => c.id))),
+            timeout: 10000,
+        })
+
         consultations.forEach(c => {
             for (let item of rabbitmq.data)
                 if (c.medical_record === item.id) {
@@ -122,18 +131,19 @@ export class ConsultationService extends BaseService<Consultation> {
                     }
                     if (c.status === 'pending' || c.status === 'confirmed')
                         data.coming.push(consultation)
-                    else if (c.status === 'finished')
+                    else if (c.status === 'finished') {
+                        for(let r of rooms) {
+                            if(c.id = r.consultation) {
+                                consultation['room'] = r.id
+                                break
+                            }
+                        }
                         data.finish.push(consultation)
+                    }
                     else data.cancel.push(consultation)
                     break
                 }
         })
-
-        return {
-            code: 200,
-            message: "success",
-            data: data
-        }
     }
 
     async getConsultation(doctor_id: string) {
