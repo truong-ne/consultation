@@ -39,8 +39,8 @@ export class UserConsultation {
         }
 
         const data = await this.consultationService.bookConsultation(req.user.id, dto, working_time)
-        const momo = await this.paymentmomo(data.price)
-        return { ...data, momo }
+        // const momo = await this.paymentmomo(data.price)
+        return data
     }
 
     @UseGuards(UserGuard)
@@ -73,50 +73,5 @@ export class UserConsultation {
         @Req() req
     ) {
         return await this.consultationService.userConsultation(req.user.id)
-    }
-
-    private async paymentmomo(amount: string,): Promise<any> {
-        const date = new Date().getTime();
-        const requestId = date + "id";
-        const orderId = date + ":0123456778";
-        const autoCapture = true;
-        const requestType = "captureWallet";
-        const notifyUrl = "https://sangle.free.beeceptor.com";
-        const returnUrl = "https://sangle.free.beeceptor.com";
-        // const amount = "10000";
-        const orderInfo = "Thanh toán qua Website";
-        const extraData = "ew0KImVtYWlsIjogImh1b25neGRAZ21haWwuY29tIg0KfQ==";
-        let signature = "accessKey=" + 'klm05TvNBzhg7h7j' + "&amount=" + amount +
-            "&extraData=" + extraData + "&ipnUrl=" + notifyUrl + "&orderId=" + orderId +
-            "&orderInfo=" + orderInfo + "&partnerCode=" + 'MOMOBKUN20180529' + "&redirectUrl=" +
-            returnUrl + "&requestId=" + requestId + "&requestType=" + requestType;
-        const hash = await CryptoJS.HmacSHA256(signature, 'at67qH6mk8w5Y1nAyMoYKMWACiEi2bsa');
-        signature = CryptoJS.enc.Hex.stringify(hash)
-
-
-        const req = {
-            "partnerCode": "MOMOBKUN20180529",
-            "partnerName": "Test",
-            "storeId": "MOMOBKUN20180529",
-            "requestType": "captureWallet",
-            "ipnUrl": "https://sangle.free.beeceptor.com",
-            "redirectUrl": "https://sangle.free.beeceptor.com",
-            "orderId": orderId,
-            "amount": amount,
-            "lang": "vi",
-            "autoCapture": true,
-            "orderInfo": "Thanh toán qua Website",
-            "requestId": requestId,
-            "extraData": extraData,
-            "signature": signature
-        }
-
-        const data = await fetch('https://test-payment.momo.vn/v2/gateway/api/create', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(req)
-        })
-        // console.log(await data.json())
-        return await data.json()
     }
 }
