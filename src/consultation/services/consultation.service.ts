@@ -44,7 +44,7 @@ export class ConsultationService extends BaseService<Consultation> {
                 await this.amqpConnection.request<any>({
                     exchange: 'healthline.chat',
                     routingKey: 'room',
-                    payload: { consultationId: consultation.id, doctorId: consultation.doctor.id, userId: consultation.user.id },
+                    payload: { consultationId: consultation.id, medicalId: consultation.medical_record, doctorId: consultation.doctor.id, userId: consultation.user.id },
                     timeout: 10000,
                 })
             }
