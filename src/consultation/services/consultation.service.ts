@@ -104,10 +104,11 @@ export class ConsultationService extends BaseService<Consultation> {
 
         const finished = consultations.filter(c => c.status === 'finished')
 
+
         const rooms = await this.amqpConnection.request<any>({
             exchange: 'healthline.chat',
             routingKey: 'get_room',
-            payload: Array.from(new Set(finished.map(c => c.id))),
+            payload: Array.from(new Set(finished.map(c => [c.doctor.id, c.user.id, c.medical_record]))),
             timeout: 10000,
         })
 
@@ -133,7 +134,7 @@ export class ConsultationService extends BaseService<Consultation> {
                         data.coming.push(consultation)
                     else if (c.status === 'finished') {
                         for(let r of rooms) {
-                            if(c.id = r.consultation) {
+                            if(c.medical_record === r.medical_id && c.doctor.id === r.members[0] && c.user.id === r.members[1]) {
                                 consultation['room'] = r._id
                                 break
                             }
@@ -574,9 +575,9 @@ export class ConsultationService extends BaseService<Consultation> {
             // "iat": Math.floor(Date.now() / 1000),
             // "exp": Math.floor(Date.now() / 1000 + 1000 * 60 * time),
             // "nbf": Math.floor(Date.now() / 1000 - 5),
-            "iat": 1703879943,
-            "exp": 1803887143,
-            "nbf": 1703879938,
+            "iat": 1716719302,
+            "exp": 2016726502,
+            "nbf": 1716719297,
             sub: appId,
             context: {
                 features: {
