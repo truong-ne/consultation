@@ -80,6 +80,7 @@ export class PrescriptionService extends BaseService<Prescription> {
                 doctorName: prescription.doctorName,
                 diagnosis: prescription.diagnosis,
                 drugs: data,
+                note: prescription.note,
                 created_at: prescription.created_at,
             }
         }

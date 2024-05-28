@@ -514,7 +514,7 @@ export class ConsultationService extends BaseService<Consultation> {
                 medical: medical.data[0],
                 ...data,
                 patient_records: patient ? patient.data : [],
-                feedback: consultation.feedback ? consultation.feedback.feedback : null,
+                feedback: consultation.feedback ? consultation.feedback : null,
                 rated: consultation.feedback ? consultation.feedback.rated : null
             }
         }
