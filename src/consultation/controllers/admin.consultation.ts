@@ -73,4 +73,24 @@ export class AdminConsultation {
     async ageChart(@Param('month') month: number, @Param('year') year: number) {
         return await this.consultationService.ageChart(month, year)
     }
+
+    @UseGuards(AdminGuard)
+    @ApiBearerAuth()
+    @ApiOperation({ summary: 'Xem các bệnh nhân của bác sĩ' })
+    @Get('information/medical/:doctor_id')
+    async constUserDoctorConsultationByAdmin(
+        @Param('doctor_id') doctor_id: string,
+    ) {
+        return await this.consultationService.countUserByDoctorConsultation(doctor_id)
+    }
+
+    @UseGuards(AdminGuard)
+    @ApiBearerAuth()
+    @ApiOperation({ summary: 'Xem các bác sĩ của bệnh nhân' })
+    @Get('information/doctor/:user_id')
+    async countDoctorByUserConsultation(
+        @Param('user_id') user_id: string,
+    ) {
+        return await this.consultationService.countDoctorByUserConsultation(user_id)
+    }
 }

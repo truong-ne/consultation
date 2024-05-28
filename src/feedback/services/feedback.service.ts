@@ -100,6 +100,9 @@ export class FeedbackService extends BaseService<Feedback> {
             if (!consultation.feedback)
                 continue
 
+            if (!consultation.feedback.rated)
+                continue
+
             const user = await this.amqpConnection.request<any>({
                 exchange: 'healthline.user.information',
                 routingKey: 'medical',
@@ -109,6 +112,8 @@ export class FeedbackService extends BaseService<Feedback> {
             if (consultation.feedback.feedback === null)
                 data.push({
                     id: consultation.feedback.id,
+                    date: consultation.date,
+                    expected_time: consultation.expected_time,
                     user: user.data[0],
                     // feedback: consultation.feedback.feedback,
                     rated: consultation.feedback.rated,
@@ -116,6 +121,8 @@ export class FeedbackService extends BaseService<Feedback> {
                 })
             else data.push({
                 id: consultation.feedback.id,
+                date: consultation.date,
+                expected_time: consultation.expected_time,
                 user: user.data[0],
                 feedback: consultation.feedback.feedback,
                 rated: consultation.feedback.rated,
@@ -134,6 +141,8 @@ export class FeedbackService extends BaseService<Feedback> {
         }
 
         return {
+            code: 200,
+            message: 'success',
             data: data,
             // message: rating[0] + rating[1]
         }

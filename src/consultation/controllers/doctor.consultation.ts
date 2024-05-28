@@ -60,15 +60,6 @@ export class DoctorConsultation {
         }
     }
 
-    @UseGuards(AdminGuard)
-    @ApiBearerAuth()
-    @Get('information/admin/:doctor_id')
-    async constUserDoctorConsultationByAdmin(
-        @Param('doctor_id') doctor_id: string,
-    ) {
-        return await this.consultationService.countUserByDoctorConsultation(doctor_id)
-    }
-
     @UseGuards(DoctorGuard)
     @ApiBearerAuth()
     @Get('information')
@@ -137,6 +128,17 @@ export class DoctorConsultation {
         }
 
         return await this.consultationService.doctorSchedule(doctor_id, dto.date, working_time)
+    }
+
+    @UseGuards(DoctorGuard)
+    @ApiBearerAuth()
+    @ApiOperation({ summary: 'Xem lịch sử khám, hồ sơ khám bệnh' })
+    @Get('/detail/medical/:medical_id')
+    async countDoctorByUserConsultation(
+        @Param('medical_id') medical_id: string,
+        @Req() req
+    ) {
+        return await this.consultationService.consultationRecord(req.user.id, medical_id)
     }
 
     //    

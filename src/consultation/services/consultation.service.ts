@@ -529,7 +529,7 @@ export class ConsultationService extends BaseService<Consultation> {
         if (consultations.length === 0)
             return {
                 data: {
-                    consultation: [],
+                    medicals: [],
                     quantity: 0
                 },
             }
@@ -561,7 +561,127 @@ export class ConsultationService extends BaseService<Consultation> {
 
         return {
             data: {
-                consultation: data,
+                medicals: data,
+                quantity: consultations.length
+            },
+        }
+    }
+
+    async consultationRecord(doctor_id: string, medical_id: string) {
+        const consulations = await this.consultationRepository.find({ where: { doctor: { id: doctor_id }, medical_record: medical_id }, relations: ['doctor', 'feedback', 'prescription', 'prescription.drugs'] })
+
+
+        
+        const data = []
+        for(let c of consulations) {
+            var patient_records = []
+            if(c.patient_records.length > 0)
+                patient_records = (await this.amqpConnection.request<any>({
+                    exchange: 'healthline.user.information',
+                    routingKey: 'patient',
+                    payload: c.patient_records,
+                    timeout: 10000,
+                })).data
+            data.push({
+                id: c.id,
+                date: c.date,
+                expected_time: c.expected_time,
+                price: c.price,
+                medical_history: c.medical_history,
+                symptoms: c.symptoms,
+                patient_records: patient_records,
+                prescription: c.prescription,
+                feedback: c.feedback,
+            })
+        }
+
+        return {
+            code: 200,
+            message: 'success',
+            data: data
+        }
+    }
+
+    async countDoctorByUserConsultation(user_id: string): Promise<any> {
+        const consultations = await this.consultationRepository.find({
+            where: { user: { id: user_id }, status: Status.finished },
+            relations: ['user', 'doctor']
+        })
+
+        if (consultations.length === 0)
+            return {
+                data: {
+                    doctors: [],
+                    quantity: 0
+                },
+            }
+
+        const ids = Array.from(new Set(consultations.map(c => c.doctor.id)))
+        const doctors = await this.doctorRepository.find({ where: { id: In(ids) } })
+
+        const information = await this.amqpConnection.request<any>({
+            exchange: 'healthline.doctor.information',
+            routingKey: 'information'
+        })
+
+        const data = []
+        for (const doctor of doctors) {
+            for (let consultation of consultations)
+                if (consultation.doctor.id === doctor.id) {
+                    for (const i of information) {
+                        var flag = false
+                        if (doctor.id === i.doctor_id) {
+                            flag = true
+                            data.push({
+                                id: doctor.id,
+                                full_name: doctor.full_name,
+                                avatar: doctor.avatar,
+                                email: doctor.email,
+                                phone: doctor.phone,
+                                // dayOfBirth: doctor.dayOfBirth,
+                                gender: doctor.gender,
+                                // careers: doctor.careers,
+                                // specialty: doctor.specialties,
+                                // educationAndCertification: doctor.educationAndCertification,
+                                // biography: doctor.biography,
+                                fee_per_minutes: doctor.fee_per_minutes,
+                                // account_balance: doctor.account_balance,
+                                // is_active: doctor.isActive,
+                                ratings: i.averageRating,
+                                number_of_consultation: i.quantity,
+                                // updated_at: doctor.updated_at
+                            })
+                            break
+                        }
+                    }
+                    if (!flag) {
+                        data.push({
+                            id: doctor.id,
+                            full_name: doctor.full_name,
+                            avatar: doctor.avatar,
+                            email: doctor.email,
+                            phone: doctor.phone,
+                            // dayOfBirth: doctor.dayOfBirth,
+                            gender: doctor.gender,
+                            // careers: doctor.careers,
+                            // specialty: doctor.specialties,
+                            // educationAndCertification: doctor.educationAndCertification,
+                            // biography: doctor.biography,
+                            fee_per_minutes: doctor.fee_per_minutes,
+                            // account_balance: doctor.account_balance,
+                            // is_active: doctor.isActive,
+                            ratings: 0,
+                            number_of_consultation: 0,
+                            // updated_at: doctor.updated_at
+                        })
+                    }
+                    break
+                }
+        }
+
+        return {
+            data: {
+                doctors: data,
                 quantity: consultations.length
             },
         }
