@@ -568,7 +568,7 @@ export class ConsultationService extends BaseService<Consultation> {
     }
 
     async consultationRecord(doctor_id: string, medical_id: string) {
-        const consulations = await this.consultationRepository.find({ where: { doctor: { id: doctor_id }, medical_record: medical_id }, relations: ['doctor', 'feedback', 'prescription', 'prescription.drugs'] })
+        const consulations = await this.consultationRepository.find({ where: { medical_record: medical_id }, relations: ['doctor', 'feedback', 'prescription', 'prescription.drugs'] })
 
 
         
@@ -584,6 +584,14 @@ export class ConsultationService extends BaseService<Consultation> {
                 })).data
             data.push({
                 id: c.id,
+                doctor: {
+                    id: c.doctor.id,
+                    full_name: c.doctor.full_name,
+                    avatar: c.doctor.avatar,
+                    email: c.doctor.email,
+                    phone: c.doctor.phone,
+                    gender: c.doctor.gender,
+                },
                 date: c.date,
                 expected_time: c.expected_time,
                 price: c.price,
