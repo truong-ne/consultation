@@ -26,7 +26,7 @@ export class Consultation {
     @Column()
     price: number
 
-    @Column({ nullable: true, length: 10 })
+    @Column({ nullable: true })
     symptoms: string
 
     @Column({ name: 'medical_history', nullable: true })

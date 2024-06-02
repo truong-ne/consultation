@@ -58,6 +58,9 @@ export class PrescriptionService extends BaseService<Prescription> {
     async getPrescription(consultation_id: string): Promise<any> {
         const prescription = await this.prescriptionRepository.findOne({ where: { consultation: { id: consultation_id } }, relations: ['consultation', 'drugs'] })
 
+        if(!prescription)
+            throw new BadRequestException('prescription_not_found')
+        
         const data = []
         prescription.drugs.forEach(p => {
             data.push({
