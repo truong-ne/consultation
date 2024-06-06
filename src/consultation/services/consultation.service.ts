@@ -30,7 +30,7 @@ export class ConsultationService extends BaseService<Consultation> {
         super(consultationRepository)
     }
 
-    @Cron(CronExpression.EVERY_30_SECONDS)
+    @Cron(CronExpression.EVERY_10_HOURS)
     async scheduleCron() {
         const consultations = await this.consultationRepository.find({ where: { status: In([Status.confirmed, Status.pending]) }, relations: ['doctor', 'user'] })
         for (let consultation of consultations) {
@@ -54,7 +54,7 @@ export class ConsultationService extends BaseService<Consultation> {
                 await this.consultationRepository.save(consultation)
 
                 consultation.user.account_balance += consultation.price
-                await this.userRepository.save(consultation.user) 
+                await this.userRepository.save(consultation.user)
             }
         }
     }
@@ -133,8 +133,8 @@ export class ConsultationService extends BaseService<Consultation> {
                     if (c.status === 'pending' || c.status === 'confirmed')
                         data.coming.push(consultation)
                     else if (c.status === 'finished') {
-                        for(let r of rooms) {
-                            if(c.medical_record === r.medical_id && c.doctor.id === r.members[0] && c.user.id === r.members[1]) {
+                        for (let r of rooms) {
+                            if (c.medical_record === r.medical_id && c.doctor.id === r.members[0] && c.user.id === r.members[1]) {
                                 consultation['room'] = r._id
                                 break
                             }
@@ -302,7 +302,7 @@ export class ConsultationService extends BaseService<Consultation> {
 
         await this.refund(consultation.user.id, consultation.price / 100 * 70)
 
-        consultation.doctor.account_balance +=  consultation.price / 100 * 30
+        consultation.doctor.account_balance += consultation.price / 100 * 30
         await this.doctorRepository.save(consultation.doctor)
 
         return {
@@ -571,11 +571,11 @@ export class ConsultationService extends BaseService<Consultation> {
         const consulations = await this.consultationRepository.find({ where: { medical_record: medical_id }, relations: ['doctor', 'feedback', 'prescription', 'prescription.drugs'] })
 
 
-        
+
         const data = []
-        for(let c of consulations) {
+        for (let c of consulations) {
             var patient_records = []
-            if(c.patient_records.length > 0)
+            if (c.patient_records.length > 0)
                 patient_records = (await this.amqpConnection.request<any>({
                     exchange: 'healthline.user.information',
                     routingKey: 'patient',
@@ -783,14 +783,14 @@ export class ConsultationService extends BaseService<Consultation> {
     }
 
     async consultationInformation(ids: string[]) {
-        const consultation = await this.consultationRepository.find({ where: { id: In(ids)} })
+        const consultation = await this.consultationRepository.find({ where: { id: In(ids) } })
 
-        if(consultation.length < ids.length) 
+        if (consultation.length < ids.length)
             return {
                 code: 400,
                 message: 'Not Found Consultation'
             }
-        
+
         const data = []
         consultation.forEach(c => {
             data.push({
@@ -894,7 +894,7 @@ export class ConsultationService extends BaseService<Consultation> {
         const sortedFamiliar = Object.keys(countByFamiliar).sort(
             (a, b) => countByFamiliar[b] - countByFamiliar[a]
         );
-        
+
         const ids = sortedFamiliar.slice(0, 10);
 
         const rabbitmq = await this.amqpConnection.request<any>({
@@ -923,7 +923,7 @@ export class ConsultationService extends BaseService<Consultation> {
         const sortedNew = Object.keys(countByNew).sort(
             (a, b) => countByNew[b] - countByNew[a]
         );
-        
+
         const ids = sortedNew.slice(0, 10);
 
         const rabbitmq = await this.amqpConnection.request<any>({
@@ -944,23 +944,25 @@ export class ConsultationService extends BaseService<Consultation> {
         const startOfMonth = new Date(year, month - 1, 1); // Ngày bắt đầu (1/1/2023)
         const endOfMonth = new Date(year, month, 0); // Ngày kết thúc (9/12/2023)
 
-        let consultations = await this.consultationRepository.find({ where: [
-            {
-                doctor: { id: doctorId },
-                status: Status.finished,
-                date: Between(startOfMonth, endOfMonth)
-            },
-            {
-                doctor: { id: doctorId },
-                status: Status.confirmed,
-                date: Between(startOfMonth, endOfMonth)
-            },
-            {
-                doctor: { id: doctorId },
-                status: Status.pending,
-                date: Between(startOfMonth, endOfMonth)
-            }
-        ], relations: ['doctor']});
+        let consultations = await this.consultationRepository.find({
+            where: [
+                {
+                    doctor: { id: doctorId },
+                    status: Status.finished,
+                    date: Between(startOfMonth, endOfMonth)
+                },
+                {
+                    doctor: { id: doctorId },
+                    status: Status.confirmed,
+                    date: Between(startOfMonth, endOfMonth)
+                },
+                {
+                    doctor: { id: doctorId },
+                    status: Status.pending,
+                    date: Between(startOfMonth, endOfMonth)
+                }
+            ], relations: ['doctor']
+        });
 
         const payByMedical = {};
 
@@ -990,35 +992,35 @@ export class ConsultationService extends BaseService<Consultation> {
         const endOfMonth = new Date(year, month, 0); // Ngày kết thúc (9/12/2023)
 
         const finish = await this.consultationRepository.count({
-            where: { 
+            where: {
                 status: Status.finished,
                 date: Between(startOfMonth, endOfMonth)
             }
         })
 
         const confirm = await this.consultationRepository.count({
-            where: { 
+            where: {
                 status: Status.confirmed,
                 date: Between(startOfMonth, endOfMonth)
             }
         })
 
         const pending = await this.consultationRepository.count({
-            where: { 
+            where: {
                 status: Status.pending,
                 date: Between(startOfMonth, endOfMonth)
             }
         })
 
         const cancel = await this.consultationRepository.count({
-            where: { 
+            where: {
                 status: Status.canceled,
                 date: Between(startOfMonth, endOfMonth)
             }
         })
 
         const denied = await this.consultationRepository.count({
-            where: { 
+            where: {
                 status: Status.denied,
                 date: Between(startOfMonth, endOfMonth)
             }
@@ -1042,22 +1044,24 @@ export class ConsultationService extends BaseService<Consultation> {
             const startOfMonth = new Date(year, month, 1); // Ngày bắt đầu (1/1/2023)
             const endOfMonth = new Date(year, month + 1, 0); // Ngày kết thúc (9/12/2023)
 
-            let consultation = await this.consultationRepository.find({ where: [
-                {
-                    status: Status.finished,
-                    date: Between(startOfMonth, endOfMonth)
-                },
-                {
-                    status: Status.confirmed,
-                    date: Between(startOfMonth, endOfMonth)
-                }
-            ], relations: ['discount_code']});
+            let consultation = await this.consultationRepository.find({
+                where: [
+                    {
+                        status: Status.finished,
+                        date: Between(startOfMonth, endOfMonth)
+                    },
+                    {
+                        status: Status.confirmed,
+                        date: Between(startOfMonth, endOfMonth)
+                    }
+                ], relations: ['discount_code']
+            });
 
             var originPrice = 0
             var revenue = 0
             consultation.forEach(c => {
-                if(c.discount_code)
-                    if (c.discount_code.type === "vnd") 
+                if (c.discount_code)
+                    if (c.discount_code.type === "vnd")
                         originPrice += c.price + c.discount_code.value
                     else originPrice += Math.round(c.price / (100 - c.discount_code.value) * 100)
                 else originPrice += c.price
@@ -1094,20 +1098,22 @@ export class ConsultationService extends BaseService<Consultation> {
         const startOfMonth = new Date(year, month - 1, 1); // Ngày bắt đầu (1/1/2023)
         const endOfMonth = new Date(year, month, 0); // Ngày kết thúc (9/12/2023)
 
-        let consultations = await this.consultationRepository.find({ where: [
-            {
-                status: Status.finished,
-                date: Between(startOfMonth, endOfMonth)
-            },
-            {
-                status: Status.confirmed,
-                date: Between(startOfMonth, endOfMonth)
-            }
-        ]});
+        let consultations = await this.consultationRepository.find({
+            where: [
+                {
+                    status: Status.finished,
+                    date: Between(startOfMonth, endOfMonth)
+                },
+                {
+                    status: Status.confirmed,
+                    date: Between(startOfMonth, endOfMonth)
+                }
+            ]
+        });
 
         const moneyByMedical = {}
         consultations.forEach(c => {
-            if(!moneyByMedical[c.medical_record])
+            if (!moneyByMedical[c.medical_record])
                 moneyByMedical[c.medical_record] = 0
             moneyByMedical[c.medical_record] += c.price
         })
@@ -1119,7 +1125,7 @@ export class ConsultationService extends BaseService<Consultation> {
             payload: { ids: ids, year: year },
             timeout: 10000,
         })
-        
+
         for (let key in rangeAge) {
             var sumPrice = 0
             rangeAge[key].forEach(m => {
@@ -1134,16 +1140,18 @@ export class ConsultationService extends BaseService<Consultation> {
     async medicalStatistic(year: number) {
         const oldYear = new Date(year - 1, 12, 0);
 
-        const oldConsultation = await this.consultationRepository.find({ where: [
-            {
-                status: Status.finished,
-                date: LessThan(oldYear)
-            },
-            {
-                status: Status.confirmed,
-                date: LessThan(oldYear)
-            }
-        ]})
+        const oldConsultation = await this.consultationRepository.find({
+            where: [
+                {
+                    status: Status.finished,
+                    date: LessThan(oldYear)
+                },
+                {
+                    status: Status.confirmed,
+                    date: LessThan(oldYear)
+                }
+            ]
+        })
         const countByMedical = {}
         oldConsultation.forEach(c => {
             if (countByMedical[c.medical_record]) {
@@ -1155,26 +1163,28 @@ export class ConsultationService extends BaseService<Consultation> {
 
         const medicalByMonth = []
         for (let month = 0; month < 12; month++) {
-            const startOfMonth = new Date(year, month, 1); 
+            const startOfMonth = new Date(year, month, 1);
             const endOfMonth = new Date(year, month + 1, 0);
 
-            const consultations = await this.consultationRepository.find({ where: [
-                {
-                    status: Status.finished,
-                    date: Between(startOfMonth, endOfMonth)
-                },
-                {
-                    status: Status.confirmed,
-                    date: Between(startOfMonth, endOfMonth)
-                }
-            ]})
+            const consultations = await this.consultationRepository.find({
+                where: [
+                    {
+                        status: Status.finished,
+                        date: Between(startOfMonth, endOfMonth)
+                    },
+                    {
+                        status: Status.confirmed,
+                        date: Between(startOfMonth, endOfMonth)
+                    }
+                ]
+            })
             var newMedical = 0
             var oldMedical = 0
             Array.from(new Set(consultations.map(p => p.medical_record))).forEach(c => {
-                if(countByMedical[c]) {
+                if (countByMedical[c]) {
                     oldMedical++
                     countByMedical[c]++
-                } 
+                }
                 else {
                     newMedical++
                     countByMedical[c] = 1
@@ -1198,19 +1208,21 @@ export class ConsultationService extends BaseService<Consultation> {
     }
 
     async top10Doctor(month: number, year: number) {
-        const startOfMonth = new Date(year, month -1, 1); // Ngày bắt đầu (1/1/2023)
+        const startOfMonth = new Date(year, month - 1, 1); // Ngày bắt đầu (1/1/2023)
         const endOfMonth = new Date(year, month, 0); // Ngày kết thúc (9/12/2023)
 
-        let consultations = await this.consultationRepository.find({ where: [
-            {
-                status: Status.finished,
-                date: Between(startOfMonth, endOfMonth)
-            },
-            {
-                status: Status.confirmed,
-                date: Between(startOfMonth, endOfMonth)
-            }
-        ], relations: ['doctor']});
+        let consultations = await this.consultationRepository.find({
+            where: [
+                {
+                    status: Status.finished,
+                    date: Between(startOfMonth, endOfMonth)
+                },
+                {
+                    status: Status.confirmed,
+                    date: Between(startOfMonth, endOfMonth)
+                }
+            ], relations: ['doctor']
+        });
 
         const countByDoctor = {};
 
@@ -1225,7 +1237,7 @@ export class ConsultationService extends BaseService<Consultation> {
         const sortedFamiliar = Object.keys(countByDoctor).sort(
             (a, b) => countByDoctor[b] - countByDoctor[a]
         );
-        
+
         const ids = sortedFamiliar.slice(0, 10);
 
         const rabbitmq = await this.amqpConnection.request<any>({
@@ -1259,23 +1271,25 @@ export class ConsultationService extends BaseService<Consultation> {
         const startOfMonth = new Date(year, month - 1, 1); // Ngày bắt đầu (1/1/2023)
         const endOfMonth = new Date(year, month, 0); // Ngày kết thúc (9/12/2023)
 
-        let consultations = await this.consultationRepository.find({ where: [
-            {
-                medical_record: medicalId,
-                status: Status.finished,
-                date: Between(startOfMonth, endOfMonth)
-            },
-            {
-                medical_record: medicalId,
-                status: Status.confirmed,
-                date: Between(startOfMonth, endOfMonth)
-            },
-            {
-                medical_record: medicalId,
-                status: Status.pending,
-                date: Between(startOfMonth, endOfMonth)
-            }
-        ]});
+        let consultations = await this.consultationRepository.find({
+            where: [
+                {
+                    medical_record: medicalId,
+                    status: Status.finished,
+                    date: Between(startOfMonth, endOfMonth)
+                },
+                {
+                    medical_record: medicalId,
+                    status: Status.confirmed,
+                    date: Between(startOfMonth, endOfMonth)
+                },
+                {
+                    medical_record: medicalId,
+                    status: Status.pending,
+                    date: Between(startOfMonth, endOfMonth)
+                }
+            ]
+        });
 
         const payByMedical = {};
 
