@@ -30,7 +30,7 @@ export class ConsultationService extends BaseService<Consultation> {
         super(consultationRepository)
     }
 
-    @Cron(CronExpression.EVERY_10_HOURS)
+    @Cron(CronExpression.EVERY_30_MINUTES)
     async scheduleCron() {
         const consultations = await this.consultationRepository.find({ where: { status: In([Status.confirmed, Status.pending]) }, relations: ['doctor', 'user'] })
         for (let consultation of consultations) {
