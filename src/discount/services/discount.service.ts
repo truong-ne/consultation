@@ -90,6 +90,8 @@ export class DiscountService extends BaseService<Discount> {
 
         const data = await this.discountRepository.save(discount)
 
+        await this.cronDiscount()
+
         return {
             data: data
         }
@@ -104,6 +106,8 @@ export class DiscountService extends BaseService<Discount> {
             throw new NotFoundException('not_found_discount')
 
         const data = await this.discountRepository.remove(discount)
+
+        await this.deleteIndexMeilisearch('discount', id)
 
         return {
             message: "successfully"

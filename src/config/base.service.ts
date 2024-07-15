@@ -50,4 +50,35 @@ export abstract class BaseService<T> {
 
         return result[0];
     }
+
+    async updateMeilisearch(table: string, data: any) {
+        const response = await fetch('https://meilisearch-truongne.koyeb.app/indexes/' + table + '/documents', {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": "Bearer CHOPPER_LOVE_MEILISEARCH",
+            },
+            body: JSON.stringify(data),
+        });
+      }
+    
+      async deleteTableMeilisearch(table: string) {
+        const response = await fetch('https://meilisearch-truongne.koyeb.app/indexes/' + table + '/documents', {
+            method: "DELETE",
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": "Bearer CHOPPER_LOVE_MEILISEARCH",
+            },
+        });
+      }
+    
+      async deleteIndexMeilisearch(table: string, id: string) {
+        const response = await fetch('https://meilisearch-truongne.koyeb.app/indexes/' + table + '/documents/' + id, {
+            method: "DELETE",
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": "Bearer CHOPPER_LOVE_MEILISEARCH",
+            },
+        });
+      }
 }
