@@ -2,7 +2,7 @@ import { Injectable, NotFoundException, ConflictException, UnauthorizedException
 import { InjectRepository } from "@nestjs/typeorm";
 import { BaseService } from "../../config/base.service";
 import { Doctor } from "../entities/doctor.entity";
-import { Between, In, LessThan, Repository } from "typeorm";
+import { And, Between, In, LessThan, Not, Repository } from "typeorm";
 import { Consultation } from "../entities/consultation.entity";
 import { User } from "../entities/user.entity";
 import { Status } from "../../config/enum.constants";
@@ -390,6 +390,7 @@ export class ConsultationService extends BaseService<Consultation> {
         const consultations = await this.consultationRepository.find({
             where: {
                 doctor: { id: doctor.id },
+                status: And(Not(Status.canceled), Not(Status.denied), Not(Status.finished)),
                 date: date
             },
         })
