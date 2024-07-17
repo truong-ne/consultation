@@ -236,8 +236,11 @@ export class ConsultationService extends BaseService<Consultation> {
         const jisti_token = this.generate(process.env.PRIVATE_CONSULTATION, data_jisti, bookingDate.length * 20)
         consultation.jisti_token = jisti_token
 
-        if(dto.usePoint)
+        if(dto.usePoint) {
             consultation.price = consultation.price - user.point
+            user.point = 0
+
+        }
         const data = await this.consultationRepository.save(consultation)
 
         await this.amqpConnection.request<any>({
@@ -316,7 +319,7 @@ export class ConsultationService extends BaseService<Consultation> {
 
         await this.amqpConnection.request<any>({
             exchange: 'healthline.user.information',
-            routingKey: 'pending_transaction',
+            routingKey: 'cancel_transaction',
             payload: { userId: consultation.user.id, doctor: { id: consultation.doctor.id, avatar: consultation.doctor.avatar, full_name: consultation.doctor.full_name }, amount: consultation.price },
             timeout: 10000,
         })
