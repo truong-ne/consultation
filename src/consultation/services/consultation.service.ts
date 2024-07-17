@@ -234,9 +234,18 @@ export class ConsultationService extends BaseService<Consultation> {
             kid: "vpaas-magic-cookie-fd0744894f194f3ea748884f83cec195/d3d290"
         }
         const jisti_token = this.generate(process.env.PRIVATE_CONSULTATION, data_jisti, bookingDate.length * 20)
-        console.log(jisti_token)
         consultation.jisti_token = jisti_token
+
+        if(dto.usePoint)
+            consultation.price = consultation.price - user.point
         const data = await this.consultationRepository.save(consultation)
+
+        await this.amqpConnection.request<any>({
+            exchange: 'healthline.user.information',
+            routingKey: 'pending_transaction',
+            payload: { userId: user.id, doctor: { id: doctor.id, avatar: doctor.avatar, full_name: doctor.full_name }, amount: consultation.price },
+            timeout: 10000,
+        })
 
         try {
             await this.userRepository.save(user)
@@ -305,6 +314,13 @@ export class ConsultationService extends BaseService<Consultation> {
         consultation.doctor.account_balance += consultation.price / 100 * 30
         await this.doctorRepository.save(consultation.doctor)
 
+        await this.amqpConnection.request<any>({
+            exchange: 'healthline.user.information',
+            routingKey: 'pending_transaction',
+            payload: { userId: consultation.user.id, doctor: { id: consultation.doctor.id, avatar: consultation.doctor.avatar, full_name: consultation.doctor.full_name }, amount: consultation.price },
+            timeout: 10000,
+        })
+
         return {
             code: 200,
             message: 'success'
@@ -340,6 +356,14 @@ export class ConsultationService extends BaseService<Consultation> {
 
         if (consultation.status !== Status.pending)
             throw new BadRequestException('can_not_' + status + '_because_status_is_not_pending')
+
+        if(status === Status.denied)
+            await this.amqpConnection.request<any>({
+                exchange: 'healthline.user.information',
+                routingKey: 'denied_transaction',
+                payload: { userId: consultation.user.id, doctor: { id: consultation.doctor.id, avatar: consultation.doctor.avatar, full_name: consultation.doctor.full_name }, amount: consultation.price },
+                timeout: 10000,
+            })
 
         consultation.status = status
         const data = await this.consultationRepository.save(consultation)

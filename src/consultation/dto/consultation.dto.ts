@@ -1,5 +1,5 @@
 import { ApiProperty } from "@nestjs/swagger";
-import { IsArray, IsDateString, IsEnum, IsNotEmpty, IsNumber, IsString, Max, Min } from "class-validator";
+import { IsArray, IsBoolean, IsDateString, IsEnum, IsNotEmpty, IsNumber, IsString, Max, Min } from "class-validator";
 
 export class BookConsultation {
     @IsNotEmpty()
@@ -36,6 +36,10 @@ export class BookConsultation {
     @ApiProperty({ example: null })
     @IsString()
     discount_code: string
+
+    @ApiProperty({ example: false })
+    @IsBoolean()
+    usePoint: boolean
 }
 
 export class DateDto {
