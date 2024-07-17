@@ -293,7 +293,7 @@ export class ConsultationService extends BaseService<Consultation> {
         await this.amqpConnection.request<any>({
             exchange: 'healthline.user.information',
             routingKey: 'cancel_transaction',
-            payload: { userId: consultation.user.id, doctor: { id: consultation.doctor.id, avatar: consultation.doctor.avatar, full_name: consultation.doctor.full_name }, amount: consultation.price },
+            payload: { userId: consultation.user, doctor: { id: consultation.doctor.id, avatar: consultation.doctor.avatar, full_name: consultation.doctor.full_name }, amount: consultation.price },
             timeout: 10000,
         })
 
@@ -327,7 +327,7 @@ export class ConsultationService extends BaseService<Consultation> {
         await this.amqpConnection.request<any>({
             exchange: 'healthline.user.information',
             routingKey: 'cancel_confirm_transaction',
-            payload: { userId: consultation.user.id, doctor: { id: consultation.doctor.id, avatar: consultation.doctor.avatar, full_name: consultation.doctor.full_name }, amount: consultation.price },
+            payload: { userId: consultation.user, doctor: { id: consultation.doctor.id, avatar: consultation.doctor.avatar, full_name: consultation.doctor.full_name }, amount: consultation.price },
             timeout: 10000,
         })
 
