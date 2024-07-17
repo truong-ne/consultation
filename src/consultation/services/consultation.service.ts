@@ -274,7 +274,7 @@ export class ConsultationService extends BaseService<Consultation> {
     async cancelConsultation(user_id: string, consultation_id: string) {
         const consultation = await this.consultationRepository.findOne({
             where: { id: consultation_id },
-            relations: ['user']
+            relations: ['user', 'doctor']
         })
 
         if (!consultation) throw new NotFoundException('consultation_not_found')
